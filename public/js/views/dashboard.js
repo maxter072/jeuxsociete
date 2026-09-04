@@ -52,7 +52,7 @@ export function Dashboard(state, refresh) {
         h('div', { class: 'draw-actions' },
           h('button', { class: 'btn gold big', onclick: startDraw }, '🎲 Tirer le jeu du jour'),
           h('button', { class: 'btn primary', onclick: openPickGameModal }, '✋ Choisir manuellement'),
-          h('button', { class: 'btn ghost', onclick: () => openPartModal(state, refresh) }, '📝 Enregistrer une partie'),
+          h('button', { class: 'btn coral', onclick: () => openPartModal(state, refresh) }, '📝 Enregistrer une partie'),
         ),
       );
     }

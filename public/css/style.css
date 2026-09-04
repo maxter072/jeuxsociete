@@ -307,6 +307,12 @@ main {
   color: var(--gold-ink);
   box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--gold) 70%, transparent);
 }
+.btn.coral {
+  background: linear-gradient(135deg, var(--coral), #e5754f);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--coral) 70%, transparent);
+}
 .btn.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
 .btn.danger:hover { background: var(--danger-soft); }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
