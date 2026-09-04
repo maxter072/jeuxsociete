@@ -1,0 +1,29 @@
+# Service systemd pour « Pause Jeux »
+# Installation :
+#   cp deploy/pause-jeux.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now pause-jeux
+# Adapter le chemin /opt/pause-jeux si besoin.
+
+[Unit]
+Description=Pause Jeux - gestion des pauses jeux de societe
+After=network.target
+
+[Service]
+Type=simple
+User=pausejeux
+Group=pausejeux
+WorkingDirectory=/opt/pause-jeux
+ExecStart=/usr/bin/node server.js
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=3
+
+# Durcissement minimal
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/opt/pause-jeux/data
+
+[Install]
+WantedBy=multi-user.target
