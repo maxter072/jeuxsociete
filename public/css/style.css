@@ -145,7 +145,7 @@ input, select, textarea { font: inherit; color: var(--ink); }
 .tabs a {
   white-space: nowrap;
   padding: .45rem .95rem;
-  border-radius: 999px;
+  border-radius: 12px;
   color: var(--muted);
   font-weight: 600;
   font-size: .92rem;
