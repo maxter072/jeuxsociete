@@ -154,11 +154,54 @@ export function Classements(state, refresh) {
     );
   }
 
+  /** Période précédente celle affichée (pour les tendances). */
+  function previousPeriod() {
+    if (mode === 'month') {
+      const py = shiftMonth(ym, -1);
+      return { range: monthRange(py), label: monthLabel(py) };
+    }
+    if (mode === 'week') {
+      const ref = shiftDays(weekRef, -7);
+      return { range: weekRange(ref), label: `semaine ${isoWeekNumber(ref)}` };
+    }
+    return { range: yearRange(year - 1), label: `${year - 1}` };
+  }
+
   function buildBoard() {
     const range = mode === 'month' ? monthRange(ym) : mode === 'week' ? weekRange(weekRef) : yearRange(year);
     const rows = standings(state, sessionsInRange(state, range.from, range.to));
     const total = rows.reduce((n, r) => n + r.games, 0);
     const periodLabel = mode === 'month' ? monthLabel(ym) : mode === 'week' ? `semaine ${isoWeekNumber(weekRef)}` : `l'année ${year}`;
+
+    // Tendance : rang actuel comparé au rang de la période précédente,
+    // pour les joueurs classés les deux fois.
+    const prev = previousPeriod();
+    const prevSessions = sessionsInRange(state, prev.range.from, prev.range.to);
+    const prevRank = new Map();
+    if (prevSessions.length) {
+      let pr = 0;
+      for (const r of standings(state, prevSessions)) if (r.games > 0) prevRank.set(r.player.id, ++pr);
+    }
+    const trends = new Map();
+    let tr = 0;
+    for (const r of rows) {
+      if (r.games <= 0) continue;
+      tr++;
+      const was = prevRank.get(r.player.id);
+      if (was && was !== tr) trends.set(r.player.id, { dir: was > tr ? 'up' : 'down', was, now: tr });
+    }
+
+    const ordinal = (n) => (n === 1 ? '1ᵉʳ' : `${n}ᵉ`);
+    function trendCell(playerId) {
+      const t = trends.get(playerId);
+      if (!t) return h('td', { class: 'num' }, '');
+      return h('td', { class: 'num' },
+        h('span', {
+          class: `trend ${t.dir}`,
+          title: `${ordinal(t.was)} en ${prev.label} → ${ordinal(t.now)} en ${periodLabel}`,
+        }, t.dir === 'up' ? '▲' : '▼'),
+      );
+    }
 
     const card = h('section', { class: 'card' });
     if (!total) {
@@ -196,6 +239,7 @@ export function Classements(state, refresh) {
             h('th', { class: 'num' }, 'Victoires'),
             h('th', { class: 'num' }, 'Taux'),
             h('th', { class: 'num' }, 'Points'),
+            h('th', { class: 'num', title: 'Tendance par rapport à la période précédente' }, ''),
           )),
           h('tbody', {}, rows.map((r) => {
             if (r.games > 0) displayRank++;
@@ -211,6 +255,7 @@ export function Classements(state, refresh) {
               h('td', { class: 'num' }, String(r.wins)),
               h('td', { class: 'num muted' }, rate),
               h('td', { class: 'num pts' }, String(r.points)),
+              trendCell(r.player.id),
             );
           })),
         ),

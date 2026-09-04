@@ -651,3 +651,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .spark-lab { display: block; text-align: center; font-size: .62rem; color: var(--muted); margin-top: 3px; }
 
 @media (max-width: 560px) { .mini-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------------------------------------------------------------- tendances classements */
+
+.trend { font-size: .72rem; font-weight: 800; }
+.trend.up { color: var(--ok); }
+.trend.down { color: var(--danger); }
