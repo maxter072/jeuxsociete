@@ -5,6 +5,7 @@
 import { h, medal, monthLabel, openModal, confirmDialog, toast, fmtDateShort } from '../ui.js';
 import { api } from '../api.js';
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth } from '../stats.js';
+import { openPlayerStats } from '../player-modal.js';
 
 export function Classements(state, refresh) {
   let mode = initialMode(); // 'month' | 'week' | 'year' (surchargé par ?mode= dans l'URL)
@@ -170,7 +171,11 @@ export function Classements(state, refresh) {
     const heights = { 0: 'p1', 1: 'p2', 2: 'p3' };
     card.append(
       h('div', { class: 'podium', style: 'margin-bottom:1.1rem' },
-        top.map((r, i) => h('div', { class: `step ${heights[i]}` },
+        top.map((r, i) => h('div', {
+          class: `step ${heights[i]} clickable`,
+          title: `Voir la fiche de ${r.player.name}`,
+          onclick: () => openPlayerStats(state, r.player.id),
+        },
           h('span', { class: 'medal' }, medal(i + 1)),
           h('span', { class: 'pname' }, `${r.player.emoji} ${r.player.name}`),
           h('span', { class: 'ppts' }, `${r.points} pt${r.points > 1 ? 's' : ''}`),
@@ -195,7 +200,11 @@ export function Classements(state, refresh) {
           h('tbody', {}, rows.map((r) => {
             if (r.games > 0) displayRank++;
             const rate = r.games ? `${Math.round((r.wins / r.games) * 100)} %` : '—';
-            return h('tr', { class: r.games > 0 && displayRank <= 3 ? 'me-top' : '' },
+            return h('tr', {
+              class: `${r.games > 0 && displayRank <= 3 ? 'me-top' : ''}${r.games > 0 ? ' row-player' : ''}`,
+              title: r.games > 0 ? `Voir la fiche de ${r.player.name}` : undefined,
+              onclick: r.games > 0 ? () => openPlayerStats(state, r.player.id) : undefined,
+            },
               h('td', {}, r.games > 0 ? (displayRank <= 3 ? medal(displayRank) : String(displayRank)) : '—'),
               h('td', {}, `${r.player.emoji} ${r.player.name}`),
               h('td', { class: 'num' }, String(r.games)),

@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { h, toast, confetti, fmtDateShort, medal, openModal, confirmDialog } from '../ui.js';
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
 import { openPartModal } from '../part-modal.js';
+import { openPlayerStats } from '../player-modal.js';
 
 // Temps disponible pour le tirage : mémorisé localement, réglable sur l'accueil.
 const DRAW_MIN_KEY = 'pj_draw_minutes';
@@ -258,7 +259,11 @@ export function Dashboard(state, refresh) {
     if (top.length) {
       const heights = { 0: 'p1', 1: 'p2', 2: 'p3' };
       top.forEach((r, i) => {
-        steps.push(h('div', { class: `step ${heights[i]}` },
+        steps.push(h('div', {
+          class: `step ${heights[i]} clickable`,
+          title: `Voir la fiche de ${r.player.name}`,
+          onclick: () => openPlayerStats(state, r.player.id),
+        },
           h('span', { class: 'medal' }, medal(i + 1)),
           h('span', { class: 'pname' }, `${r.player.emoji} ${r.player.name}`),
           h('span', { class: 'ppts' }, `${r.points} pt${r.points > 1 ? 's' : ''}`),
@@ -315,12 +320,16 @@ export function Dashboard(state, refresh) {
         ? { label: 'Jeu favori', value: `${favGame.emoji} ${favGame.name}`, sub: `${favCount} partie${favCount > 1 ? 's' : ''}` }
         : { label: 'Jeu favori', value: '—', sub: 'aucune partie encore' },
       monthTop
-        ? { label: 'Joueur du moment', value: `${monthTop.player.emoji} ${monthTop.player.name}`, sub: `${monthTop.points} pts ce mois-ci` }
+        ? { label: 'Joueur du moment', value: `${monthTop.player.emoji} ${monthTop.player.name}`, sub: `${monthTop.points} pts ce mois-ci`, playerId: monthTop.player.id }
         : { label: 'Joueur du moment', value: '—', sub: 'classement à venir' },
     ];
 
     return h('section', { class: 'tiles' },
-      tiles.map((t) => h('div', { class: 'tile' },
+      tiles.map((t) => h('div', {
+        class: `tile${t.playerId ? ' clickable' : ''}`,
+        title: t.playerId ? 'Voir la fiche du joueur' : undefined,
+        onclick: t.playerId ? () => openPlayerStats(state, t.playerId) : undefined,
+      },
         h('div', { class: 't-label' }, t.label),
         h('div', { class: 't-value' }, t.value),
         h('div', { class: 't-sub' }, t.sub),
@@ -348,7 +357,12 @@ export function Dashboard(state, refresh) {
                 h('div', { class: 'result-chips' },
                   [...s.results].sort((a, b) => a.rank - b.rank).map((r) => {
                     const p = state.players.find((pl) => pl.id === r.playerId);
-                    return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${medal(r.rank)} ${p ? `${p.emoji} ${p.name}` : '?'} +${r.points}`);
+                    if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${medal(r.rank)} ? +${r.points}`);
+                    return h('span', {
+                      class: `rc r${r.rank <= 3 ? r.rank : ''} clickable`,
+                      title: `Voir la fiche de ${p.name}`,
+                      onclick: () => openPlayerStats(state, p.id),
+                    }, `${medal(r.rank)} ${p.emoji} ${p.name} +${r.points}`);
                   }),
                 ),
               ),

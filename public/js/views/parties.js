@@ -3,6 +3,7 @@
 import { api } from '../api.js';
 import { h, toast, confirmDialog, fmtDate, medal } from '../ui.js';
 import { openPartModal } from '../part-modal.js';
+import { openPlayerStats } from '../player-modal.js';
 
 export function Parties(state, refresh) {
   const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
@@ -30,7 +31,12 @@ export function Parties(state, refresh) {
         h('div', { class: 'result-chips' },
           ranked.map((r) => {
             const p = state.players.find((pl) => pl.id === r.playerId);
-            return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${medal(r.rank)} ${p ? `${p.emoji} ${p.name}` : '?'} +${r.points}`);
+            if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${medal(r.rank)} ? +${r.points}`);
+            return h('span', {
+              class: `rc r${r.rank <= 3 ? r.rank : ''} clickable`,
+              title: `Voir la fiche de ${p.name}`,
+              onclick: () => openPlayerStats(state, p.id),
+            }, `${medal(r.rank)} ${p.emoji} ${p.name} +${r.points}`);
           }),
         ),
       ),

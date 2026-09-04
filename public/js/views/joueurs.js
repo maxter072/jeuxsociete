@@ -3,6 +3,7 @@
 import { api } from '../api.js';
 import { h, toast, openModal, confirmDialog, fmtDateShort, medal } from '../ui.js';
 import { playerTotals } from '../stats.js';
+import { openPlayerStats } from '../player-modal.js';
 
 const EMOJIS = ['🦊', '🐻', '🦉', '🐺', '🦁', '🐸', '🐙', '🦖', '🐼', '🦅', '🐧', '🦝', '🐨', '🦄', '🐢', '🤖'];
 const COLORS = ['#e2593f', '#7c5cbf', '#0f766e', '#2563eb', '#d97706', '#059669', '#db2777', '#0891b2', '#65a30d', '#9333ea'];
@@ -22,7 +23,12 @@ export function Joueurs(state, refresh) {
   function playerCard(p, t) {
     const rate = t.games ? Math.round((t.wins / t.games) * 100) : 0;
     return h('div', { class: `card tight${p.active ? '' : ' inactive'}` },
-      h('div', { class: 'row', style: 'gap:.7rem' },
+      h('div', {
+        class: 'row clickable',
+        style: 'gap:.7rem;cursor:pointer',
+        title: `Voir la fiche de ${p.name}`,
+        onclick: () => openPlayerStats(state, p.id),
+      },
         h('span', { class: 'avatar', style: `background:${p.color}22;border:2px solid ${p.color}` }, p.emoji),
         h('div', { style: 'min-width:0' },
           h('h3', {}, p.name),
