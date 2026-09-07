@@ -1,6 +1,6 @@
-// Vue « Classements » : podium + tableau complet, par mois ou par année,
-// avec navigation dans toutes les périodes passées (l'historique est conservé)
-// et réinitialisation par mois, par année ou totale.
+// Vue « Classements » : podium + tableau complet, par mois, semaine ou année,
+// classement des jeux, avec navigation dans toutes les périodes passées
+// (l'historique est conservé) et réinitialisation par mois, par année ou totale.
 
 import { h, medal, monthLabel, openModal, confirmDialog, toast, fmtDateShort } from '../ui.js';
 import { api } from '../api.js';
@@ -8,7 +8,7 @@ import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays
 import { openPlayerStats } from '../player-modal.js';
 
 export function Classements(state, refresh) {
-  let mode = initialMode(); // 'month' | 'week' | 'year' (surchargé par ?mode= dans l'URL)
+  let mode = initialMode(); // 'month' | 'week' | 'year' | 'game' (surchargé par ?mode= dans l'URL)
   let ym = currentYM();
   let year = new Date().getFullYear();
   let weekRef = new Date(); // date de référence de la semaine affichée
@@ -24,7 +24,7 @@ export function Classements(state, refresh) {
 
   function initialMode() {
     const q = new URLSearchParams(location.hash.split('?')[1] || '');
-    return ['month', 'week', 'year'].includes(q.get('mode')) ? q.get('mode') : 'month';
+    return ['month', 'week', 'year', 'game'].includes(q.get('mode')) ? q.get('mode') : 'month';
   }
 
   function render() {
@@ -35,9 +35,15 @@ export function Classements(state, refresh) {
         h('button', { class: 'btn sm danger', onclick: openResetModal }, '🗑 Réinitialiser…'),
       ),
       buildTabs(),
-      mode === 'month' ? buildMonthNav() : mode === 'week' ? buildWeekNav() : buildYearNav(),
-      buildBoard(),
     );
+    if (mode === 'game') {
+      wrap.append(buildGameBoard());
+    } else {
+      wrap.append(
+        mode === 'month' ? buildMonthNav() : mode === 'week' ? buildWeekNav() : buildYearNav(),
+        buildBoard(),
+      );
+    }
   }
 
   // ------------------------------------------------ réinitialisation
@@ -109,6 +115,7 @@ export function Classements(state, refresh) {
       tab('month', '📅 Par mois'),
       tab('week', '🗓 Par semaine'),
       tab('year', '📆 Par année'),
+      tab('game', '🎲 Par jeu'),
     );
   }
 
@@ -274,6 +281,87 @@ export function Classements(state, refresh) {
         `Barème actuel : ${bareme} · autres rangs ${pb.default ?? 0} pt · participation +${state.config.participationPoints} pt — modifiable dans Réglages. Points figés à l'enregistrement de chaque partie.`),
     );
 
+    return card;
+  }
+
+  /** Classement des jeux : les plus joués, meilleur joueur de chaque jeu, dernière sortie. */
+  function buildGameBoard() {
+    const card = h('section', { class: 'card' });
+    if (!state.sessions.length) {
+      card.append(h('p', { class: 'empty-note' }, 'Aucune partie enregistrée : le classement par jeu apparaîtra dès la première partie.'));
+      return card;
+    }
+
+    // Stats par jeu sur toutes les sessions, tri croissant par date pour retenir la dernière.
+    const stats = new Map();
+    for (const s of [...state.sessions].sort((a, b) => a.date.localeCompare(b.date))) {
+      let st = stats.get(s.gameId);
+      if (!st) {
+        st = { plays: 0, players: new Set(), wins: new Map(), points: new Map(), last: s.date };
+        stats.set(s.gameId, st);
+      }
+      st.plays++;
+      st.last = s.date;
+      for (const r of s.results) {
+        st.players.add(r.playerId);
+        st.points.set(r.playerId, (st.points.get(r.playerId) || 0) + r.points);
+        if (r.rank === 1) st.wins.set(r.playerId, (st.wins.get(r.playerId) || 0) + 1);
+      }
+    }
+
+    const rows = [...stats.entries()]
+      .map(([gid, st]) => ({ game: state.games.find((g) => g.id === gid), st }))
+      .filter((r) => r.game)
+      .sort((a, b) => b.st.plays - a.st.plays || a.game.name.localeCompare(b.game.name, 'fr'));
+
+    // Meilleur joueur du jeu : le plus de victoires, départage aux points.
+    const bestOf = (st) => {
+      let best = null;
+      for (const [pid, w] of st.wins) {
+        const pts = st.points.get(pid) || 0;
+        if (!best || w > best.w || (w === best.w && pts > best.pts)) best = { pid, w };
+      }
+      if (!best) return null;
+      const p = state.players.find((pl) => pl.id === best.pid);
+      return p ? { p, w: best.w } : null;
+    };
+
+    card.append(
+      h('div', { class: 'tbl-wrap' },
+        h('table', { class: 'tbl' },
+          h('thead', {}, h('tr', {},
+            h('th', {}, '#'),
+            h('th', {}, 'Jeu'),
+            h('th', { class: 'num' }, 'Parties'),
+            h('th', { class: 'num' }, 'Joueurs'),
+            h('th', {}, 'Meilleur joueur'),
+            h('th', {}, 'Dernière partie'),
+          )),
+          h('tbody', {}, rows.map((r, i) => {
+            const b = bestOf(r.st);
+            return h('tr', { class: i < 3 ? 'me-top' : '' },
+              h('td', {}, i < 3 ? medal(i + 1) : String(i + 1)),
+              h('td', {}, `${r.game.emoji} ${r.game.name}`),
+              h('td', { class: 'num' }, String(r.st.plays)),
+              h('td', { class: 'num' }, String(r.st.players.size)),
+              h('td', {}, b
+                ? h('span', {
+                    class: 'clickable',
+                    title: `Voir la fiche de ${b.p.name}`,
+                    onclick: () => openPlayerStats(state, b.p.id),
+                  }, `${b.p.emoji} ${b.p.name} (${b.w} victoire${b.w > 1 ? 's' : ''})`)
+                : '—'),
+              h('td', {}, fmtDateShort(r.st.last)),
+            );
+          })),
+        ),
+      ),
+    );
+
+    const never = state.games.filter((g) => g.active && !stats.has(g.id));
+    card.append(h('p', { class: 'muted small', style: 'margin-top:.8rem' },
+      'Toutes périodes confondues. « Meilleur joueur » : le plus de victoires sur ce jeu, départage aux points.'
+      + (never.length ? ` Jamais joués : ${never.map((g) => `${g.emoji} ${g.name}`).join(' · ')}.` : '')));
     return card;
   }
 }
