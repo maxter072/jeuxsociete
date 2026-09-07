@@ -68,8 +68,9 @@ deploy/              Exemples systemd + Nginx pour la production
 - **Enregistrer une partie** : cocher les présents → toucher les joueurs dans l'ordre
   d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
   : pirates, mutins, loups-garous…), **🤝 Coop** (tout le monde gagne) et
-  **💀 Un seul perdant** (pilipili : personne ne gagne, chacun marque juste son point
-  de participation, le perdant **perd 1 point** et est compté en défaite).
+  **💀 Perdants** (pilipili, Traître à bord… : personne ne gagne, un ou plusieurs
+  perdants **perdent 1 point** et sont comptés en défaites, les rescapés marquent
+  leur point de participation).
 - **Points** : barème par rang (défaut 5/3/2/1 puis 0) + participation (+1),
   modifiable dans Réglages. Les points sont **figés à l'enregistrement** :
   changer le barème ne réécrit jamais le passé.

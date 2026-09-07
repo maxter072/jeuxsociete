@@ -3,8 +3,9 @@
 // Mode coopératif : tout le monde finit rang 1.
 // Mode « plusieurs gagnants » (jeux à factions : pirates, mutins…) :
 // on touche les gagnants (rang 1), les autres finissent ex æquo.
-// Mode « perdant unique » (pilipili…) : personne ne gagne, on touche le
-// perdant (dernier rang), les autres finissent ex æquo au rang 2.
+// Mode « perdants » (pilipili, Traître à bord…) : personne ne gagne, on
+// touche le ou les perdants (dernier rang), les autres finissent ex æquo
+// au rang 2.
 
 import { api } from './api.js';
 import { h, openModal, toast, todayISO } from './ui.js';
@@ -22,20 +23,20 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
   let multi = false;
   let loser = false;
   let present; // Set des ids présents
-  let order = []; // ordre d'arrivée, liste des gagnants (multi) ou du perdant (loser)
+  let order = []; // ordre d'arrivée, liste des gagnants (multi) ou des perdants (loser)
 
   if (session) {
     present = new Set(session.results.map((r) => r.playerId));
     const sorted = [...session.results].sort((a, b) => a.rank - b.rank);
     coop = sorted.length > 1 && sorted.every((r) => r.rank === 1);
     const rank1 = sorted.filter((r) => r.rank === 1).length;
-    // Perdant unique : aucune place de premier (personne ne gagne).
+    // Perdants : aucune place de premier (personne ne gagne).
     loser = !coop && rank1 === 0 && sorted.length > 1;
     // Plusieurs gagnants : au moins deux rangs 1 sans que tout le monde gagne,
     // ou des rangs doublés (perdants ex æquo).
     multi = !coop && !loser && rank1 > 0 && (rank1 > 1 || new Set(sorted.map((r) => r.rank)).size !== sorted.length);
     order = loser
-      ? [sorted[sorted.length - 1].playerId] // le perdant = dernier rang
+      ? sorted.filter((r) => r.rank === sorted[sorted.length - 1].rank).map((r) => r.playerId) // perdants = dernier rang
       : multi
         ? sorted.filter((r) => r.rank === 1).map((r) => r.playerId)
         : sorted.map((r) => r.playerId);
@@ -127,7 +128,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
         {
           type: 'button',
           class: 'toggle on',
-          title: loser ? 'Retirer le perdant' : multi ? 'Retirer des gagnants' : 'Retirer du classement',
+          title: loser ? 'Retirer des perdants' : multi ? 'Retirer des gagnants' : 'Retirer du classement',
           onclick: () => {
             order = order.filter((x) => x !== id);
             rerender();
@@ -148,7 +149,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
           class: 'toggle',
           title: loser ? 'Déclarer perdant' : multi ? 'Déclarer gagnant' : undefined,
           onclick: () => {
-            if (loser) order = [p.id]; // un seul perdant : on remplace
+            if (loser) order = order.includes(p.id) ? order.filter((x) => x !== p.id) : [...order, p.id];
             else order.push(p.id);
             rerender();
           },
@@ -168,16 +169,16 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
     );
 
     const missing = present.size - order.length;
-    const loserName = order.length ? state.players.find((pl) => pl.id === order[0])?.name : null;
+    const loserNames = order.map((id) => state.players.find((pl) => pl.id === id)?.name).filter(Boolean).join(' et ');
     const rankHint =
       present.size === 0
         ? 'Cochez au moins un joueur présent.'
         : loser
           ? present.size < 3
-            ? 'Le mode « un seul perdant » demande au moins 3 joueurs.'
+            ? 'Le mode « perdants » demande au moins 3 joueurs.'
             : order.length === 0
-              ? 'Touchez le perdant — personne ne gagne, les autres finissent ex æquo au rang 2.'
-              : `${loserName} perdant 💀 (−1 pt) · ${present.size - order.length} rescapé${present.size - order.length > 1 ? 's' : ''} ex æquo au rang 2, aucun gagnant.`
+              ? 'Touchez le ou les perdants — personne ne gagne, les autres finissent ex æquo au rang 2.'
+              : `${loserNames} perdant${order.length > 1 ? 's' : ''} 💀 (−1 pt${order.length > 1 ? 's chacun' : ''}) · ${present.size - order.length} rescapé${present.size - order.length > 1 ? 's' : ''} ex æquo au rang 2, aucun gagnant.`
           : multi
             ? order.length === 0
               ? 'Touchez les gagnants — les autres présents finiront perdants ex æquo.'
@@ -191,7 +192,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
       {
         type: 'button',
         class: `btn sm${loser ? ' primary' : ''}`,
-        title: 'Pilipili et jeux du même genre : personne ne gagne, un seul perdant',
+        title: 'Pilipili, Traître à bord… : personne ne gagne, un ou plusieurs perdants (−1 pt chacun)',
         onclick: () => {
           loser = !loser;
           if (loser) {
@@ -202,7 +203,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
           rerender();
         },
       },
-      '💀 Un seul perdant',
+      '💀 Perdants',
     );
     const multiBtn = h(
       'button',
@@ -272,7 +273,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
         h('div', { class: 'row', style: 'gap:.4rem' }, presentChips),
       ),
       h('div', { class: 'field' },
-        h('span', {}, loser ? '💀 Perdant unique' : multi ? '🏆 Gagnants & perdants' : '🏁 Classement'),
+        h('span', {}, loser ? '💀 Perdants' : multi ? '🏆 Gagnants & perdants' : '🏁 Classement'),
         h('p', { class: 'small muted', style: 'margin:.1rem 0 .55rem' }, rankHint),
         h('div', { class: 'row', style: 'gap:.4rem' }, ranked, rankPool),
         h('div', { class: 'row', style: 'gap:.4rem;margin-top:.7rem' }, loserBtn, multiBtn, coopBtn, resetBtn),
@@ -291,11 +292,12 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
 
     let results;
     if (loser) {
-      if (present.size < 3) return toast('Le mode « un seul perdant » demande au moins 3 joueurs.', 'warn');
-      if (order.length !== 1) return toast('Désignez le perdant.', 'warn');
-      // Personne ne gagne : rescapés ex æquo au rang 2, perdant au dernier rang.
-      results = [...present].filter((id) => id !== order[0]).map((playerId) => ({ playerId, rank: 2 }))
-        .concat([{ playerId: order[0], rank: present.size }]);
+      if (present.size < 3) return toast('Le mode « perdants » demande au moins 3 joueurs.', 'warn');
+      if (order.length === 0) return toast('Désignez au moins un perdant.', 'warn');
+      if (order.length >= present.size) return toast('Il faut au moins un rescapé : tout le monde ne peut pas perdre.', 'warn');
+      // Personne ne gagne : rescapés ex æquo au rang 2, perdants ex æquo au dernier rang.
+      results = [...present].filter((id) => !order.includes(id)).map((playerId) => ({ playerId, rank: 2 }))
+        .concat(order.map((playerId) => ({ playerId, rank: present.size })));
     } else if (multi) {
       if (order.length === 0) return toast('Désignez au moins un gagnant.', 'warn');
       const losingRank = order.length + 1;

@@ -63,8 +63,8 @@ export function shiftMonth(ym, delta) {
 /**
  * Classement d'un ensemble de sessions.
  * Défaite = partie perdue : pas gagné quand la partie a un gagnant
- * (coop exceptée : tous rang 1), ou être le perdant quand elle n'en a pas
- * (mode « un seul perdant » : les rescapés rang 2 ne gagnent ni ne perdent).
+ * (coop exceptée : tous rang 1), ou être perdant quand elle n'en a pas
+ * (mode « perdants » : les rescapés rang 2 ne gagnent ni ne perdent).
  * Tri : points, puis victoires, puis défaites, puis taux de victoire, puis nom.
  * Tous les joueurs actifs apparaissent, même à 0 partie.
  */
