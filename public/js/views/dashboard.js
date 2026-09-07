@@ -2,7 +2,7 @@
 // présents, top 3, stats, dernières parties (édition/suppression rapides).
 
 import { api } from '../api.js';
-import { h, toast, confetti, fmtDateShort, medal, openModal, confirmDialog } from '../ui.js';
+import { h, toast, confetti, fmtDateShort, medal, resultIcon, openModal, confirmDialog } from '../ui.js';
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
@@ -357,12 +357,12 @@ export function Dashboard(state, refresh) {
                 h('div', { class: 'result-chips' },
                   [...s.results].sort((a, b) => a.rank - b.rank).map((r) => {
                     const p = state.players.find((pl) => pl.id === r.playerId);
-                    if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${medal(r.rank)} ? +${r.points}`);
+                    if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${resultIcon(s, r.rank)} ? +${r.points}`);
                     return h('span', {
                       class: `rc r${r.rank <= 3 ? r.rank : ''} clickable`,
                       title: `Voir la fiche de ${p.name}`,
                       onclick: () => openPlayerStats(state, p.id),
-                    }, `${medal(r.rank)} ${p.emoji} ${p.name} +${r.points}`);
+                    }, `${resultIcon(s, r.rank)} ${p.emoji} ${p.name} +${r.points}`);
                   }),
                 ),
               ),

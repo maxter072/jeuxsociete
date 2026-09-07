@@ -1,7 +1,7 @@
 // Vue « Joueurs » : profils, stats cumulées, historique individuel.
 
 import { api } from '../api.js';
-import { h, toast, openModal, confirmDialog, fmtDateShort, medal } from '../ui.js';
+import { h, toast, openModal, confirmDialog, fmtDateShort, resultIcon } from '../ui.js';
 import { playerTotals } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
 
@@ -67,7 +67,7 @@ function openHistoryModal(state, player) {
           const r = s.results.find((x) => x.playerId === player.id);
           const g = state.games.find((x) => x.id === s.gameId);
           return h('div', { class: 'list-item' },
-            h('span', { class: 'rank-medal' }, medal(r.rank)),
+            h('span', { class: 'rank-medal' }, resultIcon(s, r.rank)),
             h('div', { class: 'grow' },
               h('div', { class: 'title' }, `${g?.emoji ?? '🎲'} ${g?.name ?? 'Jeu supprimé'}`),
               h('div', { class: 'sub' }, `${fmtDateShort(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),

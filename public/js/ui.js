@@ -52,6 +52,13 @@ export function medal(rank) {
   return MEDALS[rank - 1] || `#${rank}`;
 }
 
+/** Icône de résultat : médailles classiques, ou 👍/💀 pour les parties sans
+ * gagnant (mode « un seul perdant » : rescapés rang 2, perdant au-delà). */
+export function resultIcon(session, rank) {
+  if (session.results.some((r) => r.rank === 1)) return medal(rank);
+  return rank === 2 ? '👍' : '💀';
+}
+
 // ------------------------------------------------------------------ toasts
 
 export function toast(msg, kind = '') {

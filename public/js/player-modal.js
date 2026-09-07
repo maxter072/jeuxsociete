@@ -2,7 +2,7 @@
 // dernières parties. Ouverte en cliquant sur un joueur n'importe où
 // (podiums, tableau des classements, puces de résultats, carte joueur).
 
-import { h, openModal, medal, fmtDateShort } from './ui.js';
+import { h, openModal, resultIcon, fmtDateShort } from './ui.js';
 import { sessionsInRange, weekRange, shiftDays, isoWeekNumber } from './stats.js';
 
 const WEEKS_SHOWN = 8;
@@ -80,7 +80,7 @@ export function openPlayerStats(state, playerId) {
           const r = s.results.find((x) => x.playerId === playerId);
           const g = state.games.find((x) => x.id === s.gameId);
           return h('div', { class: 'list-item' },
-            h('span', { class: 'rank-medal' }, medal(r.rank)),
+            h('span', { class: 'rank-medal' }, resultIcon(s, r.rank)),
             h('div', { class: 'grow' },
               h('div', { class: 'title' }, `${g?.emoji ?? '🎲'} ${g?.name ?? 'Jeu supprimé'}`),
               h('div', { class: 'sub' }, `${fmtDateShort(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),

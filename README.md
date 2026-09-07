@@ -67,7 +67,8 @@ deploy/              Exemples systemd + Nginx pour la production
   et adaptés aux **présents** cochés. Les gagnants de la journée gardent leur place jusqu'au lendemain.
 - **Enregistrer une partie** : cocher les présents → toucher les joueurs dans l'ordre
   d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
-  : pirates, mutins, loups-garous…) et **🤝 Coop** (tout le monde gagne).
+  : pirates, mutins, loups-garous…), **🤝 Coop** (tout le monde gagne) et
+  **💀 Un seul perdant** (pilipili : personne ne gagne, les rescapés finissent ex æquo).
 - **Points** : barème par rang (défaut 5/3/2/1 puis 0) + participation (+1),
   modifiable dans Réglages. Les points sont **figés à l'enregistrement** :
   changer le barème ne réécrit jamais le passé.

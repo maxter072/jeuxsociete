@@ -1,7 +1,7 @@
 // Vue « Parties » : historique complet des sessions, édition et suppression.
 
 import { api } from '../api.js';
-import { h, toast, confirmDialog, fmtDate, medal } from '../ui.js';
+import { h, toast, confirmDialog, fmtDate, resultIcon } from '../ui.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
 
@@ -31,12 +31,12 @@ export function Parties(state, refresh) {
         h('div', { class: 'result-chips' },
           ranked.map((r) => {
             const p = state.players.find((pl) => pl.id === r.playerId);
-            if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${medal(r.rank)} ? +${r.points}`);
+            if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${resultIcon(s, r.rank)} ? +${r.points}`);
             return h('span', {
               class: `rc r${r.rank <= 3 ? r.rank : ''} clickable`,
               title: `Voir la fiche de ${p.name}`,
               onclick: () => openPlayerStats(state, p.id),
-            }, `${medal(r.rank)} ${p.emoji} ${p.name} +${r.points}`);
+            }, `${resultIcon(s, r.rank)} ${p.emoji} ${p.name} +${r.points}`);
           }),
         ),
       ),
