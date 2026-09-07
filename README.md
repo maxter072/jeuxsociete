@@ -69,7 +69,7 @@ deploy/              Exemples systemd + Nginx pour la production
   d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
   : pirates, mutins, loups-garous…), **🤝 Coop** (tout le monde gagne) et
   **💀 Un seul perdant** (pilipili : personne ne gagne, chacun marque juste son point
-  de participation, le perdant est compté en défaite).
+  de participation, le perdant **perd 1 point** et est compté en défaite).
 - **Points** : barème par rang (défaut 5/3/2/1 puis 0) + participation (+1),
   modifiable dans Réglages. Les points sont **figés à l'enregistrement** :
   changer le barème ne réécrit jamais le passé.

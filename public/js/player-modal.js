@@ -60,11 +60,11 @@ export function openPlayerStats(state, playerId) {
     ),
     h('h4', { class: 'pm-title' }, `📈 Points par semaine (${WEEKS_SHOWN} dernières)`),
     h('div', { class: 'spark' }, weeks.map((w) =>
-      h('div', { class: 'spark-col', title: `Semaine ${w.num} : ${w.pts} pt${w.pts > 1 ? 's' : ''}` },
+      h('div', { class: 'spark-col', title: `Semaine ${w.num} : ${w.pts} pt${Math.abs(w.pts) > 1 ? 's' : ''}` },
         h('div', { class: 'spark-barbox' },
           h('div', {
-            class: `spark-bar${w.pts ? '' : ' zero'}`,
-            style: `height:${w.pts ? Math.max(8, Math.round((w.pts / maxPts) * 100)) : 3}%`,
+            class: `spark-bar${w.pts ? '' : ' zero'}${w.pts < 0 ? ' neg' : ''}`,
+            style: `height:${w.pts ? Math.max(8, Math.round((Math.abs(w.pts) / maxPts) * 100)) : 3}%`,
           }),
         ),
         h('span', { class: 'spark-lab' }, `S${w.num}`),

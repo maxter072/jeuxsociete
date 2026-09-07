@@ -112,14 +112,16 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
 
     // --- classement
     const losers = [...present].filter((id) => !order.includes(id)); // perdants ex æquo (mode multi)
-    // Mode perdant unique : personne ne gagne, tout le monde marque juste
-    // le point de participation (figé côté serveur).
+    // Mode perdant unique : personne ne gagne, les rescapés marquent juste
+    // le point de participation, le perdant perd 1 point (figés côté serveur).
     const piliPts = state.config.participationPoints || 0;
+    const piliMalus = -1;
 
     const ranked = order.map((id, i) => {
       const p = state.players.find((pl) => pl.id === id);
       const badge = loser ? '💀' : coop || multi ? '🥇' : String(i + 1);
-      const pts = loser ? piliPts : pointsForRank(coop || multi ? 1 : i + 1, state.config);
+      const pts = loser ? piliMalus : pointsForRank(coop || multi ? 1 : i + 1, state.config);
+      const label = `${pts > 0 ? '+' : ''}${pts} pt${Math.abs(pts) > 1 ? 's' : ''}`;
       return h(
         'button',
         {
@@ -133,7 +135,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
         },
         h('span', { class: 'badge-rank' }, badge),
         h('span', {}, `${p.emoji} ${p.name}`),
-        h('span', { class: 'muted small' }, `+${pts} pt${pts > 1 ? 's' : ''}`),
+        h('span', { class: 'muted small' }, label),
       );
     });
 
@@ -175,7 +177,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
             ? 'Le mode « un seul perdant » demande au moins 3 joueurs.'
             : order.length === 0
               ? 'Touchez le perdant — personne ne gagne, les autres finissent ex æquo au rang 2.'
-              : `${loserName} perdant 💀 · ${present.size - order.length} rescapé${present.size - order.length > 1 ? 's' : ''} ex æquo au rang 2, aucun gagnant.`
+              : `${loserName} perdant 💀 (−1 pt) · ${present.size - order.length} rescapé${present.size - order.length > 1 ? 's' : ''} ex æquo au rang 2, aucun gagnant.`
           : multi
             ? order.length === 0
               ? 'Touchez les gagnants — les autres présents finiront perdants ex æquo.'
@@ -245,7 +247,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
     // --- récapitulatif des points
     let total = 0;
     if (loser) {
-      total = present.size * piliPts;
+      total = (present.size - order.length) * piliPts + order.length * piliMalus;
     } else if (multi) {
       total = order.length * pointsForRank(1, state.config)
         + losers.length * pointsForRank(order.length + 1, state.config);
@@ -275,7 +277,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
         h('div', { class: 'row', style: 'gap:.4rem' }, ranked, rankPool),
         h('div', { class: 'row', style: 'gap:.4rem;margin-top:.7rem' }, loserBtn, multiBtn, coopBtn, resetBtn),
       ),
-      h('p', { class: 'small muted' }, `${total} point${total > 1 ? 's' : ''} distribués au total.`),
+      h('p', { class: 'small muted' }, `${total} point${Math.abs(total) > 1 ? 's' : ''} distribués au total.`),
       h('div', { class: 'form-actions' },
         h('button', { type: 'button', class: 'btn ghost', onclick: modal.close }, 'Annuler'),
         h('button', { type: 'submit', class: 'btn primary' }, session ? '💾 Mettre à jour' : '💾 Enregistrer la partie'),
