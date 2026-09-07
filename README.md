@@ -48,33 +48,6 @@ node scripts/smoke-test.mjs 3000
 
 ---
 
-## 🔄 Travailler sur le projet (local + GitHub)
-
-Chaque modification suit le même chemin : commit local **et** push GitHub.
-
-```bash
-git add -A                      # ou les fichiers précis
-git -c user.name="Maxime" -c user.email="maxime@local" \
-    commit -m "Description de la modification"
-git push                        # envoie sur github.com/maxter072/jeuxsociete
-```
-
-> Les `-c user.name/email` ne servent que si git n'a pas de config globale ;
-> faire une fois pour toutes : `git config --global user.name "Maxime"` etc.
-
-Revenir en arrière sur une modification :
-
-```bash
-git log --oneline       # retrouver le commit
-git revert <identifiant>   # annule exactement ce commit (historique conservé)
-```
-
-⚠️ Les données (`data/db.json`) ne sont **pas** versionnées : revenir en arrière
-sur le code ne supprime jamais les parties. Pensez à l'export JSON dans
-**Réglages → Télécharger une sauvegarde** avant les grosses manipulations.
-
----
-
 ## 📁 Structure
 
 ```
