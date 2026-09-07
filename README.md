@@ -1,116 +1,133 @@
 # 🎲 Pause Jeux
 
-Application web pour organiser les pauses jeux de société : tirage au sort du jeu du jour,
-enregistrement des résultats en moins d'une minute, classements mensuels et annuels avec historique.
+Application web pour les pauses jeux de société d'équipe : tirage du jeu du jour,
+enregistrement des parties en moins d'une minute, classements par semaine / mois / année
+et par jeu, fiche joueur avec stats.
 
-**Zéro dépendance, zéro build** : Node.js ≥ 18 suffit.
-
-| Accueil | Classements |
-|---------|-------------|
-| ![Accueil](docs/accueil.png) | ![Classements](docs/classements.png) |
+**Zéro dépendance, zéro build** : il suffit de Node.js ≥ 18.
 
 ---
 
-## Lancer en local
+## 🚀 Démarrer le projet
 
 ```bash
+# 1. Récupérer le code
+git clone https://github.com/maxter072/jeuxsociete.git
+cd jeuxsociete
+
+# 2. Lancer le serveur
 node server.js
+
+# 3. Ouvrir dans le navigateur
 # → http://localhost:3000
 ```
 
-Variables d'environnement (facultatives) :
+C'est tout. Au premier lancement, le serveur crée `data/db.json` et le rempli
+avec 10 joueurs et 8 jeux d'exemple (modifiables ensuite dans l'interface).
 
-| Variable   | Défaut    | Rôle                                |
-|------------|-----------|-------------------------------------|
-| `PORT`     | `3000`    | Port d'écoute                       |
-| `HOST`     | `0.0.0.0` | Interface d'écoute                  |
-| `DATA_DIR` | `./data`  | Dossier du fichier de données       |
+### Options utiles
 
-## Tests
+| Variable   | Défaut    | Rôle                                       |
+|------------|-----------|--------------------------------------------|
+| `PORT`     | `3000`    | Port d'écoute                              |
+| `HOST`     | `0.0.0.0` | Interface d'écoute (`127.0.0.1` derrière Nginx) |
+| `DATA_DIR` | `./data`  | Dossier du fichier de données              |
+
+Exemple pour tester sans toucher ses données :
+
+```bash
+PORT=3001 DATA_DIR=/tmp/pj-test node server.js
+```
+
+### Vérifier que tout marche (test de fumée)
 
 ```bash
 node server.js &        # puis :
 node scripts/smoke-test.mjs 3000
 ```
 
-## Structure
+---
+
+## 🔄 Travailler sur le projet (local + GitHub)
+
+Chaque modification suit le même chemin : commit local **et** push GitHub.
+
+```bash
+git add -A                      # ou les fichiers précis
+git -c user.name="Maxime" -c user.email="maxime@local" \
+    commit -m "Description de la modification"
+git push                        # envoie sur github.com/maxter072/jeuxsociete
+```
+
+> Les `-c user.name/email` ne servent que si git n'a pas de config globale ;
+> faire une fois pour toutes : `git config --global user.name "Maxime"` etc.
+
+Revenir en arrière sur une modification :
+
+```bash
+git log --oneline       # retrouver le commit
+git revert <identifiant>   # annule exactement ce commit (historique conservé)
+```
+
+⚠️ Les données (`data/db.json`) ne sont **pas** versionnées : revenir en arrière
+sur le code ne supprime jamais les parties. Pensez à l'export JSON dans
+**Réglages → Télécharger une sauvegarde** avant les grosses manipulations.
+
+---
+
+## 📁 Structure
 
 ```
 server.js            Serveur HTTP (API + fichiers statiques), Node pur
 lib/store.js         Persistance JSON (écriture atomique + .bak), validations, points
 public/              Frontend vanilla JS (SPA, ES modules, aucun build)
-  index.html
-  css/style.css      Thème clair « papier » + thème sombre « soirée jeu »
-  js/                main.js (routeur), api.js, ui.js, stats.js, part-modal.js
-  js/views/          dashboard, jeux, joueurs, parties, classements, reglages
-data/db.json         Les données (créé et seedé au premier lancement)
+  js/views/          dashboard, jeux, joueurs, parties, classements, réglages
+data/db.json         Les données (créé au premier lancement, non versionné)
 scripts/             Test de fumée de l'API
 deploy/              Exemples systemd + Nginx pour la production
 ```
 
-## Fonctionnement
+## 🎮 Fonctionnement
 
-- **Accueil** : bouton « Tirer le jeu du jour » (animation + confettis). Le tirage ne propose
-  que les jeux **actifs** dont la durée ≤ pause et dont la plage de joueurs convient aux **présents**
-  cochés. Le jeu du jour reste affiché jusqu'au lendemain.
-- **Enregistrer une partie** : cocher les présents → les toucher dans l'ordre d'arrivée → Enregistrer.
-  Bouton « Partie coop : tout le monde gagne » (tous rang 1).
-- **Points** : barème par rang (défaut : 5/3/2/1 puis 0) + point de participation (défaut : +1).
-  Modifiable dans Réglages ; les points sont **figés à l'enregistrement** (le passé ne bouge jamais).
-- **Classements** : calculés par semaine (lundi → dimanche), par mois et par année,
-  navigation dans toutes les périodes passées. Tri : points, puis victoires, puis taux de victoire.
-  Bouton « Réinitialiser » : efface les parties de la semaine, du mois, de l'année affichée ou tout l'historique.
-- **Intégrité** : un joueur ou un jeu ayant servi à une partie ne peut pas être supprimé —
-  on le **désactive** (masqué, historique intact).
-- **Sauvegarde** : tout vit dans `data/db.json` (une copie `data/db.json.bak` est faite avant
-  chaque modification). Export/import JSON disponibles dans Réglages.
+- **Accueil** : « Tirer le jeu du jour » (animation + confettis) ou choix manuel.
+  Le tirage ne propose que les jeux **actifs** tenant dans le temps disponible
+  et adaptés aux **présents** cochés. Les gagnants de la journée gardent leur place jusqu'au lendemain.
+- **Enregistrer une partie** : cocher les présents → toucher les joueurs dans l'ordre
+  d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
+  : pirates, mutins, loups-garous…) et **🤝 Coop** (tout le monde gagne).
+- **Points** : barème par rang (défaut 5/3/2/1 puis 0) + participation (+1),
+  modifiable dans Réglages. Les points sont **figés à l'enregistrement** :
+  changer le barème ne réécrit jamais le passé.
+- **Classements** : par semaine, mois, année (navigation dans toutes les périodes passées,
+  flèches de tendance ▲▼ vs période précédente) et **par jeu** (les plus joués, meilleur joueur).
+- **Fiche joueur** : cliquer sur n'importe quel joueur (podium, tableau, puces de
+  résultats) ouvre son palmarès, sa courbe de points sur 8 semaines, ses jeux préférés.
+- **Intégrité** : un joueur ou un jeu ayant servi à une partie ne se supprime pas,
+  il se **désactive** (historique intact).
+- **Sauvegarde** : tout vit dans `data/db.json`, avec une copie `.bak` automatique
+  avant chaque modification. Export/import JSON dans Réglages.
+- **Mobile** : interface responsive (barre de navigation en bas sur téléphone).
 
-## Déployer en production
+## 🚢 Déployer en production
 
-### 1. Installer
+Outil prévu pour un **LAN de confiance** (bureau) : pas d'authentification.
+Pour l'exposer, ajoutez au minimum une *basic auth* Nginx.
 
 ```bash
-mkdir -p /opt/pause-jeux
-cp -r server.js lib public package.json /opt/pause-jeux/
+# 1. Installer
+mkdir -p /opt/pause-jeux && cp -r server.js lib public package.json /opt/pause-jeux/
 useradd -r -s /usr/sbin/nologin pausejeux 2>/dev/null || true
 chown -R pausejeux:pausejeux /opt/pause-jeux
-```
 
-### 2. Service systemd
-
-```bash
+# 2. Service systemd
 cp deploy/pause-jeux.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now pause-jeux
-systemctl status pause-jeux
-```
+systemctl daemon-reload && systemctl enable --now pause-jeux
 
-### 3. Reverse proxy Nginx
-
-```bash
+# 3. Reverse proxy Nginx (adapter le domaine dans la conf)
 cp deploy/nginx-pause-jeux.conf /etc/nginx/sites-available/pause-jeux.conf
 ln -s /etc/nginx/sites-available/pause-jeux.conf /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
-```
 
-Adapter `jeux.mondomaine.fr` dans le fichier de conf. Le serveur écoute sur `127.0.0.1:3000`
-via le service systemd ; mettre `HOST=127.0.0.1` dans le service pour n'exposer que Nginx.
-
-### 4. Sauvegarde (cron)
-
-```bash
-# Tous les soirs à 23h30 : copie du fichier de données
-30 23 * * * cp /opt/pause-jeux/data/db.json /opt/pause-jeux/data/db-$(date +\%Y\%m\%d).json
-```
-
-Ou avec `git` dans le dossier `data/` pour un historique complet.
-
-### Sécurité
-
-Outil prévu pour un **LAN de confiance** (bureau) : pas d'authentification. Si vous l'exposez
-sur Internet, ajoutez au minimum une *basic auth* Nginx :
-
-```nginx
-auth_basic "Pause Jeux";
-auth_basic_user_file /etc/nginx/.htpasswd;
+# 4. Sauvegarde quotidienne (cron)
+# 30 23 * * * cp /opt/pause-jeux/data/db.json /opt/pause-jeux/data/db-$(date +\%Y\%m\%d).json
 ```
