@@ -62,24 +62,29 @@ export function shiftMonth(ym, delta) {
 
 /**
  * Classement d'un ensemble de sessions.
- * Tri : points, puis victoires, puis taux de victoire, puis nom.
+ * Défaite = partie perdue : pas gagné quand la partie a un gagnant
+ * (coop exceptée : tous rang 1), ou être le perdant quand elle n'en a pas
+ * (mode « un seul perdant » : les rescapés rang 2 ne gagnent ni ne perdent).
+ * Tri : points, puis victoires, puis défaites, puis taux de victoire, puis nom.
  * Tous les joueurs actifs apparaissent, même à 0 partie.
  */
 export function standings(state, sessions) {
   const rows = new Map();
   for (const p of state.players) {
-    if (p.active) rows.set(p.id, { player: p, games: 0, wins: 0, points: 0 });
+    if (p.active) rows.set(p.id, { player: p, games: 0, wins: 0, losses: 0, points: 0 });
   }
   for (const s of sessions) {
+    const hasWinner = s.results.some((r) => r.rank === 1);
     for (const r of s.results) {
       if (!rows.has(r.playerId)) {
         const p = state.players.find((pl) => pl.id === r.playerId);
         if (!p) continue; // joueur supprimé (normalement impossible)
-        rows.set(p.id, { player: p, games: 0, wins: 0, points: 0 });
+        rows.set(p.id, { player: p, games: 0, wins: 0, losses: 0, points: 0 });
       }
       const row = rows.get(r.playerId);
       row.games++;
       if (r.rank === 1) row.wins++;
+      else if (hasWinner || r.rank > 2) row.losses++;
       row.points += r.points;
     }
   }
@@ -87,6 +92,7 @@ export function standings(state, sessions) {
     (a, b) =>
       b.points - a.points ||
       b.wins - a.wins ||
+      a.losses - b.losses ||
       b.games && a.games && b.wins / b.games - a.wins / a.games ||
       a.player.name.localeCompare(b.player.name, 'fr'),
   );

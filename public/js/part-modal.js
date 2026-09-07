@@ -112,13 +112,14 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
 
     // --- classement
     const losers = [...present].filter((id) => !order.includes(id)); // perdants ex æquo (mode multi)
-    const survivorPts = pointsForRank(2, state.config); // rescapés du mode perdant unique
-    const lastPts = pointsForRank(Math.max(present.size, 2), state.config); // perdant unique
+    // Mode perdant unique : personne ne gagne, tout le monde marque juste
+    // le point de participation (figé côté serveur).
+    const piliPts = state.config.participationPoints || 0;
 
     const ranked = order.map((id, i) => {
       const p = state.players.find((pl) => pl.id === id);
       const badge = loser ? '💀' : coop || multi ? '🥇' : String(i + 1);
-      const pts = loser ? lastPts : pointsForRank(coop || multi ? 1 : i + 1, state.config);
+      const pts = loser ? piliPts : pointsForRank(coop || multi ? 1 : i + 1, state.config);
       return h(
         'button',
         {
@@ -157,7 +158,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
             : h('span', {}, p.emoji),
         h('span', {}, loser ? `${p.emoji} ${p.name}` : multi ? `🏳️ ${p.emoji} ${p.name}` : p.name),
         loser
-          ? h('span', { class: 'muted small' }, `+${survivorPts} pt${survivorPts > 1 ? 's' : ''}`)
+          ? h('span', { class: 'muted small' }, `+${piliPts} pt${piliPts > 1 ? 's' : ''}`)
           : multi
             ? h('span', { class: 'muted small' }, `+${pointsForRank(order.length + 1, state.config)} pt${pointsForRank(order.length + 1, state.config) > 1 ? 's' : ''}`)
             : null,
@@ -244,7 +245,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
     // --- récapitulatif des points
     let total = 0;
     if (loser) {
-      total = order.length * lastPts + (present.size - order.length) * survivorPts;
+      total = present.size * piliPts;
     } else if (multi) {
       total = order.length * pointsForRank(1, state.config)
         + losers.length * pointsForRank(order.length + 1, state.config);
