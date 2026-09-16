@@ -2,7 +2,7 @@
 
 Application web pour les pauses jeux de société d'équipe : tirage du jeu du jour,
 enregistrement des parties en moins d'une minute, classements par semaine / mois / année
-et par jeu, fiche joueur avec stats.
+et par jeu, fiches joueur et jeu avec stats détaillées.
 
 **Zéro dépendance, zéro build** : il suffit de Node.js ≥ 18.
 
@@ -54,6 +54,7 @@ node scripts/smoke-test.mjs 3000
 server.js            Serveur HTTP (API + fichiers statiques), Node pur
 lib/store.js         Persistance JSON (écriture atomique + .bak), validations, points
 public/              Frontend vanilla JS (SPA, ES modules, aucun build)
+  js/                Helpers (ui, stats, api) + modales (partie, fiche joueur, fiche jeu)
   js/views/          dashboard, jeux, joueurs, parties, classements, réglages
 data/db.json         Les données (créé au premier lancement, non versionné)
 scripts/             Test de fumée de l'API
@@ -79,8 +80,9 @@ deploy/              Exemples systemd + Nginx pour la production
   et **par jeu** (les plus joués, meilleur joueur — touchez un jeu pour son
   classement détaillé). Une partie sans gagnant (pilipili)
   ne distribue que les points de participation.
-- **Fiche joueur** : cliquer sur n'importe quel joueur (podium, tableau, puces de
+- **Fiches joueur & jeu** : cliquer sur n'importe quel joueur (podium, tableau, puces de
   résultats) ouvre son palmarès, sa courbe de points sur 8 semaines, ses jeux préférés.
+  Dans « Par jeu », cliquer un jeu ouvre son classement détaillé et ses dernières parties.
 - **Intégrité** : un joueur ou un jeu ayant servi à une partie ne se supprime pas,
   il se **désactive** (historique intact).
 - **Sauvegarde** : tout vit dans `data/db.json`, avec une copie `.bak` automatique
