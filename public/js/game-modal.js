@@ -5,8 +5,9 @@
 import { h, openModal, medal, resultIcon, fmtPts, fmtDateShort } from './ui.js';
 import { standings } from './stats.js';
 import { openPlayerStats } from './player-modal.js';
+import { openPartModal } from './part-modal.js';
 
-export function openGameStats(state, gameId) {
+export function openGameStats(state, gameId, { refresh = null } = {}) {
   const g = state.games.find((x) => x.id === gameId);
   if (!g) return;
 
@@ -34,7 +35,19 @@ export function openGameStats(state, gameId) {
       mini(points, 'points distribués'),
       mini(played.length ? fmtDateShort(played[0].date) : '—', 'dernière partie'),
     ),
-    h('h4', { class: 'pm-title' }, '🏆 Classement de ce jeu'),
+    h('div', { class: 'spread', style: 'margin-top:.9rem' },
+      h('h4', { class: 'pm-title', style: 'margin:0' }, '🏆 Classement de ce jeu'),
+      played.length
+        ? h('button', {
+            class: 'btn sm primary',
+            title: 'Nouvelle partie de ce jeu avec le groupe de la dernière session',
+            onclick: () => openPartModal(state, refresh || (async () => {}), {
+              presetGameId: gameId,
+              presetPlayerIds: played[0].results.map((r) => r.playerId),
+            }),
+          }, '♻️ Rejouer')
+        : null,
+    ),
     rows.length
       ? h('div', { class: 'tbl-wrap' },
           h('table', { class: 'tbl' },

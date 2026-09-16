@@ -3,7 +3,7 @@
 // (podiums, tableau des classements, puces de résultats, carte joueur).
 
 import { h, openModal, resultIcon, fmtPts, fmtDateShort } from './ui.js';
-import { sessionsInRange, weekRange, shiftDays, isoWeekNumber } from './stats.js';
+import { sessionsInRange, weekRange, shiftDays, isoWeekNumber, winStreak } from './stats.js';
 
 const WEEKS_SHOWN = 8;
 
@@ -42,6 +42,9 @@ export function openPlayerStats(state, playerId) {
   }
   const maxPts = Math.max(...weeks.map((w) => w.pts), 1);
 
+  // Série de victoires en cours / record.
+  const streak = winStreak(state, playerId);
+
   const favs = [...perGame.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -58,6 +61,10 @@ export function openPlayerStats(state, playerId) {
       mini(podiums, 'podiums'),
       mini(points, 'points'),
     ),
+    streak.current >= 2
+      ? h('p', { class: 'small', style: 'margin:.5rem 0 0' },
+          `🔥 Série en cours : ${streak.current} victoire${streak.current > 1 ? 's' : ''} — record : ${streak.best}`)
+      : null,
     h('h4', { class: 'pm-title' }, `📈 Points par semaine (${WEEKS_SHOWN} dernières)`),
     h('div', { class: 'spark' }, weeks.map((w) =>
       h('div', { class: 'spark-col', title: `Semaine ${w.num} : ${w.pts} pt${Math.abs(w.pts) > 1 ? 's' : ''}` },

@@ -11,7 +11,7 @@ import { api } from './api.js';
 import { h, openModal, toast, todayISO } from './ui.js';
 import { pointsForRank, getPresents, setPresents } from './stats.js';
 
-export function openPartModal(state, refresh, { session = null, presetGameId = null } = {}) {
+export function openPartModal(state, refresh, { session = null, presetGameId = null, presetPlayerIds = null } = {}) {
   const activePlayers = state.players.filter((p) => p.active);
   const games = [...state.games].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
 
@@ -41,7 +41,8 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
         ? sorted.filter((r) => r.rank === 1).map((r) => r.playerId)
         : sorted.map((r) => r.playerId);
   } else {
-    present = new Set(getPresents(state));
+    // Nouvelle partie : présents imposés (« rejouer ») ou mémorisés du dernier enregistrement.
+    present = new Set(presetPlayerIds?.length ? presetPlayerIds : getPresents(state));
     order = [];
   }
 

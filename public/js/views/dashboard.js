@@ -367,6 +367,11 @@ export function Dashboard(state, refresh) {
                 ),
               ),
               h('div', { class: 'row', style: 'gap:.3rem' },
+                h('button', {
+                  class: 'btn sm',
+                  title: 'Rejouer : même jeu, mêmes joueurs',
+                  onclick: () => openPartModal(state, refresh, { presetGameId: s.gameId, presetPlayerIds: s.results.map((r) => r.playerId) }),
+                }, '♻️'),
                 h('button', { class: 'btn sm', title: 'Modifier', onclick: () => openPartModal(state, refresh, { session: s }) }, '✏️'),
                 h('button', {
                   class: 'btn sm danger',

@@ -4,7 +4,7 @@
 
 import { h, medal, monthLabel, openModal, confirmDialog, toast, fmtDateShort } from '../ui.js';
 import { api } from '../api.js';
-import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth } from '../stats.js';
+import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth, winStreak } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
 import { openGameStats } from '../game-modal.js';
 
@@ -177,9 +177,15 @@ export function Classements(state, refresh) {
 
   function buildBoard() {
     const range = mode === 'month' ? monthRange(ym) : mode === 'week' ? weekRange(weekRef) : yearRange(year);
-    const rows = standings(state, sessionsInRange(state, range.from, range.to));
+    const periodSessions = sessionsInRange(state, range.from, range.to);
+    const rows = standings(state, periodSessions);
     const total = rows.reduce((n, r) => n + r.games, 0);
     const periodLabel = mode === 'month' ? monthLabel(ym) : mode === 'week' ? `semaine ${isoWeekNumber(weekRef)}` : `l'année ${year}`;
+
+    // Flamme 🔥 : séries de victoires en cours (2 ou plus).
+    const streaks = new Map();
+    for (const r of rows) if (r.games > 0) streaks.set(r.player.id, winStreak(state, r.player.id).current);
+    const flame = (id) => (streaks.get(id) >= 2 ? ' 🔥' : '');
 
     // Tendance : rang actuel comparé au rang de la période précédente,
     // pour les joueurs classés les deux fois.
@@ -228,7 +234,7 @@ export function Classements(state, refresh) {
           onclick: () => openPlayerStats(state, r.player.id),
         },
           h('span', { class: 'medal' }, medal(i + 1)),
-          h('span', { class: 'pname' }, `${r.player.emoji} ${r.player.name}`),
+          h('span', { class: 'pname' }, `${r.player.emoji} ${r.player.name}${flame(r.player.id)}`),
           h('span', { class: 'ppts' }, `${r.points} pt${r.points > 1 ? 's' : ''}`),
           h('span', { class: 'pstats' }, `${r.games} partie${r.games > 1 ? 's' : ''} · ${r.wins} victoire${r.wins > 1 ? 's' : ''}`),
         )),
@@ -259,7 +265,7 @@ export function Classements(state, refresh) {
               onclick: r.games > 0 ? () => openPlayerStats(state, r.player.id) : undefined,
             },
               h('td', {}, r.games > 0 ? (displayRank <= 3 ? medal(displayRank) : String(displayRank)) : '—'),
-              h('td', {}, `${r.player.emoji} ${r.player.name}`),
+              h('td', {}, `${r.player.emoji} ${r.player.name}${flame(r.player.id)}`),
               h('td', { class: 'num' }, String(r.games)),
               h('td', { class: 'num' }, String(r.wins)),
               h('td', { class: 'num' }, String(r.losses)),
@@ -271,6 +277,46 @@ export function Classements(state, refresh) {
         ),
       ),
     );
+
+    // --- trophées du mois (ex æquo : pas de trophée)
+    if (mode === 'month') {
+      const distinctGames = new Map(); // joueur -> Set de jeux pratiqués sur la période
+      for (const s of periodSessions) {
+        for (const r of s.results) {
+          if (!distinctGames.has(r.playerId)) distinctGames.set(r.playerId, new Set());
+          distinctGames.get(r.playerId).add(s.gameId);
+        }
+      }
+      const trophies = [];
+      const pick = (emoji, label, valueOf, min, fmt) => {
+        let top = null, tie = false;
+        for (const r of rows) {
+          if (r.games <= 0) continue;
+          const v = valueOf(r);
+          if (!top || v > top.v) { top = { id: r.player.id, v }; tie = false; }
+          else if (v === top.v) tie = true;
+        }
+        if (!top || tie || top.v < min) return;
+        const p = state.players.find((pl) => pl.id === top.id);
+        if (p) trophies.push({ emoji, label, p, v: top.v, fmt });
+      };
+      pick('⏰', 'Assidu', (r) => r.games, 1, (v) => `${v} partie${v > 1 ? 's' : ''}`);
+      pick('🧭', 'Explorateur', (r) => distinctGames.get(r.player.id)?.size || 0, 2, (v) => `${v} jeux différents`);
+      pick('💀', 'Zagred du pilipili', (r) => r.losses, 1, (v) => `${v} défaite${v > 1 ? 's' : ''}`);
+
+      if (trophies.length) {
+        card.append(
+          h('h4', { class: 'pm-title', style: 'margin-top:1.1rem' }, `🏆 Trophées de ${periodLabel}`),
+          h('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap' },
+            trophies.map((t) => h('span', {
+              class: 'chip clickable',
+              title: `Voir la fiche de ${t.p.name}`,
+              onclick: () => openPlayerStats(state, t.p.id),
+            }, `${t.emoji} ${t.label} : ${t.p.emoji} ${t.p.name} (${t.fmt(t.v)})`)),
+          ),
+        );
+      }
+    }
 
     // --- rappel du barème
     const pb = state.config.pointsByRank;
@@ -345,7 +391,7 @@ export function Classements(state, refresh) {
             return h('tr', {
               class: `${i < 3 ? 'me-top' : ''} row-player`,
               title: `Voir le classement de ${r.game.name}`,
-              onclick: () => openGameStats(state, r.game.id),
+              onclick: () => openGameStats(state, r.game.id, { refresh }),
             },
               h('td', {}, i < 3 ? medal(i + 1) : String(i + 1)),
               h('td', {}, `${r.game.emoji} ${r.game.name}`),

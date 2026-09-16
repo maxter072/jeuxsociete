@@ -114,6 +114,31 @@ export function playerTotals(state) {
   return map;
 }
 
+/**
+ * Série de victoires d'un joueur : on parcourt les parties où il a joué,
+ * de la plus récente à la plus ancienne. Une partie sans victoire (rang ≠ 1,
+ * y compris les parties sans gagnant) interrompt la série.
+ * `current` ne compte que la série la plus récente ; `best` balaie tout l'historique.
+ */
+export function winStreak(state, playerId) {
+  const played = state.sessions
+    .filter((s) => s.results.some((r) => r.playerId === playerId))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  let current = 0, best = 0, run = 0, closed = false;
+  for (const s of played) {
+    const r = s.results.find((x) => x.playerId === playerId);
+    if (r.rank === 1) {
+      run++;
+      if (run > best) best = run;
+      if (!closed) current = run; // on est encore dans la série la plus récente
+    } else {
+      run = 0;
+      closed = true; // la série en cours est close : les victoires plus anciennes ne comptent plus
+    }
+  }
+  return { current, best };
+}
+
 /** Nombre de parties par jeu. */
 export function gamePlayCounts(state) {
   const map = new Map();

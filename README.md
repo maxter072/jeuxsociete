@@ -75,13 +75,19 @@ deploy/              Exemples systemd + Nginx pour la production
 - **Points** : barème par rang (défaut 5/3/2/1 puis 0) + participation (+1),
   modifiable dans Réglages. Les points sont **figés à l'enregistrement** :
   changer le barème ne réécrit jamais le passé.
+- **♻️ Rejouer en un clic** : bouton sur la fiche d'un jeu et sur chaque partie
+  (Accueil, Parties) — rouvre le formulaire avec le même jeu et le même groupe présélectionnés.
 - **Classements** : par semaine, mois, année (navigation dans toutes les périodes passées,
   flèches de tendance ▲▼ vs période précédente : parties, victoires, défaites, taux, points)
   et **par jeu** (les plus joués, meilleur joueur — touchez un jeu pour son
-  classement détaillé). Une partie sans gagnant (pilipili)
+  classement détaillé). Une 🔥 flamme marque les séries de victoires en cours
+  (2 ou plus). En fin de mois : **trophées du mois** — ⏰ Assidu (le plus de parties),
+  🧭 Explorateur (le plus de jeux différents), 💀 Zagred du pilipili (le plus de défaites) ;
+  en cas d'égalité, pas de trophée. Une partie sans gagnant (pilipili)
   ne distribue que les points de participation.
 - **Fiches joueur & jeu** : cliquer sur n'importe quel joueur (podium, tableau, puces de
-  résultats) ouvre son palmarès, sa courbe de points sur 8 semaines, ses jeux préférés.
+  résultats) ouvre son palmarès, sa série de victoires en cours et son record,
+  sa courbe de points sur 8 semaines, ses jeux préférés.
   Dans « Par jeu », cliquer un jeu ouvre son classement détaillé et ses dernières parties.
 - **Intégrité** : un joueur ou un jeu ayant servi à une partie ne se supprime pas,
   il se **désactive** (historique intact).
