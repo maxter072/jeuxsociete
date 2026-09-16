@@ -1,7 +1,7 @@
 // Vue « Joueurs » : profils, stats cumulées, historique individuel.
 
 import { api } from '../api.js';
-import { h, toast, openModal, confirmDialog, fmtDateShort, resultIcon } from '../ui.js';
+import { h, toast, openModal, confirmDialog, fmtDateShort, resultIcon, fmtPts } from '../ui.js';
 import { playerTotals } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
 
@@ -72,7 +72,7 @@ function openHistoryModal(state, player) {
               h('div', { class: 'title' }, `${g?.emoji ?? '🎲'} ${g?.name ?? 'Jeu supprimé'}`),
               h('div', { class: 'sub' }, `${fmtDateShort(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
             ),
-            h('span', { class: 'chip teal' }, `+${r.points} pt${r.points > 1 ? 's' : ''}`),
+            h('span', { class: 'chip teal' }, `${fmtPts(r.points)} pt${Math.abs(r.points) > 1 ? 's' : ''}`),
           );
         })
       : h('p', { class: 'empty-note' }, 'Aucune partie enregistrée pour ce joueur.'),

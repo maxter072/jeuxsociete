@@ -76,7 +76,8 @@ deploy/              Exemples systemd + Nginx pour la production
   changer le barème ne réécrit jamais le passé.
 - **Classements** : par semaine, mois, année (navigation dans toutes les périodes passées,
   flèches de tendance ▲▼ vs période précédente : parties, victoires, défaites, taux, points)
-  et **par jeu** (les plus joués, meilleur joueur). Une partie sans gagnant (pilipili)
+  et **par jeu** (les plus joués, meilleur joueur — touchez un jeu pour son
+  classement détaillé). Une partie sans gagnant (pilipili)
   ne distribue que les points de participation.
 - **Fiche joueur** : cliquer sur n'importe quel joueur (podium, tableau, puces de
   résultats) ouvre son palmarès, sa courbe de points sur 8 semaines, ses jeux préférés.

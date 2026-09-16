@@ -2,7 +2,7 @@
 // dernières parties. Ouverte en cliquant sur un joueur n'importe où
 // (podiums, tableau des classements, puces de résultats, carte joueur).
 
-import { h, openModal, resultIcon, fmtDateShort } from './ui.js';
+import { h, openModal, resultIcon, fmtPts, fmtDateShort } from './ui.js';
 import { sessionsInRange, weekRange, shiftDays, isoWeekNumber } from './stats.js';
 
 const WEEKS_SHOWN = 8;
@@ -85,7 +85,7 @@ export function openPlayerStats(state, playerId) {
               h('div', { class: 'title' }, `${g?.emoji ?? '🎲'} ${g?.name ?? 'Jeu supprimé'}`),
               h('div', { class: 'sub' }, `${fmtDateShort(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
             ),
-            h('span', { class: 'chip teal' }, `+${r.points} pt${r.points > 1 ? 's' : ''}`),
+            h('span', { class: 'chip teal' }, `${fmtPts(r.points)} pt${Math.abs(r.points) > 1 ? 's' : ''}`),
           );
         })
       : h('p', { class: 'empty-note' }, 'Aucune partie enregistrée pour ce joueur.'),

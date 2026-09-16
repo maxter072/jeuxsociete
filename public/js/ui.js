@@ -59,6 +59,11 @@ export function resultIcon(session, rank) {
   return rank === 2 ? '👍' : '💀';
 }
 
+/** Points signés pour une puce : « +4 » ou « −1 » (jamais « +-1 »). */
+export function fmtPts(n) {
+  return `${n > 0 ? '+' : ''}${n}`;
+}
+
 // ------------------------------------------------------------------ toasts
 
 export function toast(msg, kind = '') {

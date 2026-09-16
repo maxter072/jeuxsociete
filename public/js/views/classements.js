@@ -6,6 +6,7 @@ import { h, medal, monthLabel, openModal, confirmDialog, toast, fmtDateShort } f
 import { api } from '../api.js';
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
+import { openGameStats } from '../game-modal.js';
 
 export function Classements(state, refresh) {
   let mode = initialMode(); // 'month' | 'week' | 'year' | 'game' (surchargé par ?mode= dans l'URL)
@@ -341,7 +342,11 @@ export function Classements(state, refresh) {
           )),
           h('tbody', {}, rows.map((r, i) => {
             const b = bestOf(r.st);
-            return h('tr', { class: i < 3 ? 'me-top' : '' },
+            return h('tr', {
+              class: `${i < 3 ? 'me-top' : ''} row-player`,
+              title: `Voir le classement de ${r.game.name}`,
+              onclick: () => openGameStats(state, r.game.id),
+            },
               h('td', {}, i < 3 ? medal(i + 1) : String(i + 1)),
               h('td', {}, `${r.game.emoji} ${r.game.name}`),
               h('td', { class: 'num' }, String(r.st.plays)),
@@ -350,7 +355,7 @@ export function Classements(state, refresh) {
                 ? h('span', {
                     class: 'clickable',
                     title: `Voir la fiche de ${b.p.name}`,
-                    onclick: () => openPlayerStats(state, b.p.id),
+                    onclick: (e) => { e.stopPropagation(); openPlayerStats(state, b.p.id); },
                   }, `${b.p.emoji} ${b.p.name} (${b.w} victoire${b.w > 1 ? 's' : ''})`)
                 : '—'),
               h('td', {}, fmtDateShort(r.st.last)),
@@ -362,7 +367,7 @@ export function Classements(state, refresh) {
 
     const never = state.games.filter((g) => g.active && !stats.has(g.id));
     card.append(h('p', { class: 'muted small', style: 'margin-top:.8rem' },
-      'Toutes périodes confondues. « Meilleur joueur » : le plus de victoires sur ce jeu, départage aux points.'
+      'Toutes périodes confondues. « Meilleur joueur » : le plus de victoires sur ce jeu, départage aux points. Touchez un jeu pour voir son classement détaillé.'
       + (never.length ? ` Jamais joués : ${never.map((g) => `${g.emoji} ${g.name}`).join(' · ')}.` : '')));
     return card;
   }
