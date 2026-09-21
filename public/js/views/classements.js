@@ -4,9 +4,10 @@
 
 import { h, medal, monthLabel, openModal, confirmDialog, toast, fmtDateShort } from '../ui.js';
 import { api } from '../api.js';
-import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth, winStreak } from '../stats.js';
+import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth, winStreak, monthTrophies } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
 import { openGameStats } from '../game-modal.js';
+import { openPodiumImage } from '../podium-image.js';
 
 export function Classements(state, refresh) {
   let mode = initialMode(); // 'month' | 'week' | 'year' | 'game' (surchargé par ?mode= dans l'URL)
@@ -223,6 +224,22 @@ export function Classements(state, refresh) {
       return card;
     }
 
+    // Trophées du mois — partagés par l'affichage et l'image PNG.
+    const trophies = mode === 'month' ? monthTrophies(state, rows, periodSessions) : [];
+
+    if (mode === 'month') {
+      card.append(
+        h('div', { class: 'spread', style: 'margin-bottom:.8rem' },
+          h('span', { class: 'muted small' }, `${periodSessions.length} partie${periodSessions.length > 1 ? 's' : ''} en ${periodLabel}`),
+          h('button', {
+            class: 'btn sm',
+            title: 'Image du podium à partager dans le canal de l’équipe',
+            onclick: () => openPodiumImage(state, { periodLabel, rows, streaks, trophies }),
+          }, '🖼️ Podium en PNG'),
+        ),
+      );
+    }
+
     // --- podium
     const top = rows.filter((r) => r.games > 0).slice(0, 3);
     const heights = { 0: 'p1', 1: 'p2', 2: 'p3' };
@@ -279,43 +296,17 @@ export function Classements(state, refresh) {
     );
 
     // --- trophées du mois (ex æquo : pas de trophée)
-    if (mode === 'month') {
-      const distinctGames = new Map(); // joueur -> Set de jeux pratiqués sur la période
-      for (const s of periodSessions) {
-        for (const r of s.results) {
-          if (!distinctGames.has(r.playerId)) distinctGames.set(r.playerId, new Set());
-          distinctGames.get(r.playerId).add(s.gameId);
-        }
-      }
-      const trophies = [];
-      const pick = (emoji, label, valueOf, min, fmt) => {
-        let top = null, tie = false;
-        for (const r of rows) {
-          if (r.games <= 0) continue;
-          const v = valueOf(r);
-          if (!top || v > top.v) { top = { id: r.player.id, v }; tie = false; }
-          else if (v === top.v) tie = true;
-        }
-        if (!top || tie || top.v < min) return;
-        const p = state.players.find((pl) => pl.id === top.id);
-        if (p) trophies.push({ emoji, label, p, v: top.v, fmt });
-      };
-      pick('⏰', 'Assidu', (r) => r.games, 1, (v) => `${v} partie${v > 1 ? 's' : ''}`);
-      pick('🧭', 'Explorateur', (r) => distinctGames.get(r.player.id)?.size || 0, 2, (v) => `${v} jeux différents`);
-      pick('💀', 'Zagred du pilipili', (r) => r.losses, 1, (v) => `${v} défaite${v > 1 ? 's' : ''}`);
-
-      if (trophies.length) {
-        card.append(
-          h('h4', { class: 'pm-title', style: 'margin-top:1.1rem' }, `🏆 Trophées de ${periodLabel}`),
-          h('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap' },
-            trophies.map((t) => h('span', {
-              class: 'chip clickable',
-              title: `Voir la fiche de ${t.p.name}`,
-              onclick: () => openPlayerStats(state, t.p.id),
-            }, `${t.emoji} ${t.label} : ${t.p.emoji} ${t.p.name} (${t.fmt(t.v)})`)),
-          ),
-        );
-      }
+    if (mode === 'month' && trophies.length) {
+      card.append(
+        h('h4', { class: 'pm-title', style: 'margin-top:1.1rem' }, `🏆 Trophées de ${periodLabel}`),
+        h('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap' },
+          trophies.map((t) => h('span', {
+            class: 'chip clickable',
+            title: `Voir la fiche de ${t.p.name}`,
+            onclick: () => openPlayerStats(state, t.p.id),
+          }, `${t.emoji} ${t.label} : ${t.p.emoji} ${t.p.name} (${t.fmt(t.v)})`)),
+        ),
+      );
     }
 
     // --- rappel du barème

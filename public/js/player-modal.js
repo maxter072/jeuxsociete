@@ -4,6 +4,7 @@
 
 import { h, openModal, resultIcon, fmtPts, fmtDateShort } from './ui.js';
 import { sessionsInRange, weekRange, shiftDays, isoWeekNumber, winStreak } from './stats.js';
+import { openDuelModal } from './duel-modal.js';
 
 const WEEKS_SHOWN = 8;
 
@@ -54,7 +55,12 @@ export function openPlayerStats(state, playerId) {
     });
 
   const content = h('div', {},
-    h('h4', { class: 'pm-title' }, '🏅 Palmarès'),
+    h('div', { class: 'spread' },
+      h('h4', { class: 'pm-title', style: 'margin:0' }, '🏅 Palmarès'),
+      state.players.filter((p) => p.active).length >= 2
+        ? h('button', { class: 'btn sm ghost', title: 'Face-à-face avec un autre joueur', onclick: () => openDuelModal(state, playerId) }, '🥊 Défier…')
+        : null,
+    ),
     h('div', { class: 'mini-grid' },
       mini(games, 'partie' + (games > 1 ? 's' : '')),
       mini(wins, 'victoire' + (wins > 1 ? 's' : '')),

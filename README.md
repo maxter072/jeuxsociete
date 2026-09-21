@@ -85,6 +85,10 @@ deploy/              Exemples systemd + Nginx pour la production
   🧭 Explorateur (le plus de jeux différents), 💀 Zagred du pilipili (le plus de défaites) ;
   en cas d'égalité, pas de trophée. Une partie sans gagnant (pilipili)
   ne distribue que les points de participation.
+- **🖼️ Podium en PNG** : bouton sur le classement mensuel — génère l'image du podium
+  (flammes et trophées compris) à partager dans le canal de l'équipe, copier ou télécharger.
+- **🥊 Duel** : depuis l'onglet Joueurs ou une fiche joueur — face-à-face entre deux
+  joueurs : score, ex æquo, série en cours, détail par jeu et dernières confrontations.
 - **Fiches joueur & jeu** : cliquer sur n'importe quel joueur (podium, tableau, puces de
   résultats) ouvre son palmarès, sa série de victoires en cours et son record,
   sa courbe de points sur 8 semaines, ses jeux préférés.

@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { h, toast, openModal, confirmDialog, fmtDateShort, resultIcon, fmtPts } from '../ui.js';
 import { playerTotals } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
+import { openDuelModal } from '../duel-modal.js';
 
 const EMOJIS = ['🦊', '🐻', '🦉', '🐺', '🦁', '🐸', '🐙', '🦖', '🐼', '🦅', '🐧', '🦝', '🐨', '🦄', '🐢', '🤖'];
 const COLORS = ['#e2593f', '#7c5cbf', '#0f766e', '#2563eb', '#d97706', '#059669', '#db2777', '#0891b2', '#65a30d', '#9333ea'];
@@ -15,7 +16,10 @@ export function Joueurs(state, refresh) {
   return h('div', {},
     h('div', { class: 'spread', style: 'margin-bottom:.9rem' },
       h('h1', {}, `👥 Les joueurs (${state.players.length})`),
-      h('button', { class: 'btn primary', onclick: () => openPlayerModal(null, refresh) }, '➕ Ajouter un joueur'),
+      h('div', { class: 'row', style: 'gap:.5rem' },
+        h('button', { class: 'btn ghost', title: 'Face-à-face entre deux joueurs', onclick: () => openDuelModal(state) }, '🥊 Duel'),
+        h('button', { class: 'btn primary', onclick: () => openPlayerModal(null, refresh) }, '➕ Ajouter un joueur'),
+      ),
     ),
     h('div', { class: 'grid-players' }, sorted.map((p) => playerCard(p, totals.get(p.id) || { games: 0, wins: 0, points: 0 }))),
   );

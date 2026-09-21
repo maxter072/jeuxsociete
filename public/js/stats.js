@@ -146,6 +146,39 @@ export function gamePlayCounts(state) {
   return map;
 }
 
+/**
+ * Trophées du mois : ⏰ Assidu (le plus de parties), 🧭 Explorateur (le plus
+ * de jeux différents), 💀 Zagred du pilipili (le plus de défaites).
+ * Un trophée n'est attribué que si le meilleur est seul (ex æquo : rien) et
+ * au-dessus du minimum. Utilisé par le classement mensuel et l'image PNG.
+ */
+export function monthTrophies(state, rows, periodSessions) {
+  const distinctGames = new Map(); // joueur -> Set de jeux pratiqués sur la période
+  for (const s of periodSessions) {
+    for (const r of s.results) {
+      if (!distinctGames.has(r.playerId)) distinctGames.set(r.playerId, new Set());
+      distinctGames.get(r.playerId).add(s.gameId);
+    }
+  }
+  const trophies = [];
+  const pick = (emoji, label, valueOf, min, fmt) => {
+    let top = null, tie = false;
+    for (const r of rows) {
+      if (r.games <= 0) continue;
+      const v = valueOf(r);
+      if (!top || v > top.v) { top = { id: r.player.id, v }; tie = false; }
+      else if (v === top.v) tie = true;
+    }
+    if (!top || tie || top.v < min) return;
+    const p = state.players.find((pl) => pl.id === top.id);
+    if (p) trophies.push({ emoji, label, p, v: top.v, fmt });
+  };
+  pick('⏰', 'Assidu', (r) => r.games, 1, (v) => `${v} partie${v > 1 ? 's' : ''}`);
+  pick('🧭', 'Explorateur', (r) => distinctGames.get(r.player.id)?.size || 0, 2, (v) => `${v} jeux différents`);
+  pick('💀', 'Zagred du pilipili', (r) => r.losses, 1, (v) => `${v} défaite${v > 1 ? 's' : ''}`);
+  return trophies;
+}
+
 /** Jeux éligibles au tirage : actifs, tenir dans le temps disponible, adaptés au nombre de présents. */
 export function eligibleGames(state, presentCount, maxMinutes) {
   const limit = maxMinutes ?? state.config.breakMinutes;
