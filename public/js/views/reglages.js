@@ -81,9 +81,11 @@ export function Reglages(state, refresh) {
   const fileI = h('input', {
     type: 'file',
     accept: 'application/json,.json',
+    style: 'display:none', // déclenché par le bouton « ⬆️ Restaurer »
     onchange: async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      e.target.value = ''; // permet de re-choisir le même fichier
       try {
         const parsed = JSON.parse(await file.text());
         if (!(await confirmDialog('Restaurer la sauvegarde', 'Cette action remplace TOUTES les données actuelles (joueurs, jeux, parties, réglages). Continuer ?', { okLabel: 'Restaurer' }))) return;
@@ -94,7 +96,6 @@ export function Reglages(state, refresh) {
         toast(`Import impossible : ${err.message}`, 'err');
       }
     },
-    style: 'max-width:320px',
   });
 
   const dataCard = h('section', { class: 'card' },
@@ -102,7 +103,12 @@ export function Reglages(state, refresh) {
     h('p', { class: 'muted small' }, `Les données vivent dans un unique fichier côté serveur : ${state.meta?.dataFile ?? 'data/db.json'}. Une copie .bak est conservée automatiquement avant chaque modification.`),
     h('div', { class: 'row', style: 'margin-top:.6rem' },
       h('a', { href: '/api/export', class: 'btn' }, '⬇️ Télécharger une sauvegarde'),
-      h('div', {}, h('span', { class: 'muted small' }, 'Restaurer : '), fileI),
+      h('button', {
+        class: 'btn',
+        title: 'Remplace toutes les données actuelles (joueurs, jeux, parties, réglages) par le fichier choisi',
+        onclick: () => fileI.click(),
+      }, '⬆️ Restaurer une sauvegarde'),
+      fileI,
     ),
   );
 
