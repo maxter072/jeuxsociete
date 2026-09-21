@@ -8,7 +8,7 @@
 // au rang 2.
 
 import { api } from './api.js';
-import { h, openModal, toast, todayISO } from './ui.js';
+import { h, openModal, toast, todayISO, fmtDate, confirmDialog } from './ui.js';
 import { pointsForRank, getPresents, setPresents } from './stats.js';
 
 export function openPartModal(state, refresh, { session = null, presetGameId = null, presetPlayerIds = null } = {}) {
@@ -308,6 +308,15 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
       const missing = present.size - order.length;
       if (missing > 0) return toast(`Il reste ${missing} joueur(s) à classer.`, 'warn');
       results = order.map((playerId, i) => ({ playerId, rank: coop ? 1 : i + 1 }));
+    }
+    // Garde-fou : une date dans le futur est souvent une faute de frappe.
+    if (date > todayISO()) {
+      const ok = await confirmDialog(
+        'Date dans le futur',
+        `Cette partie est datée du ${fmtDate(date)} — c'est dans le futur. L'enregistrer quand même ?`,
+        { okLabel: 'Enregistrer quand même' },
+      );
+      if (!ok) return;
     }
     try {
       await api.saveSession(session?.id, { gameId, date, note, results });

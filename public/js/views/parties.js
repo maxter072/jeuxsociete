@@ -7,16 +7,54 @@ import { openPlayerStats } from '../player-modal.js';
 
 export function Parties(state, refresh) {
   const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  let q = '';
 
-  return h('div', {},
+  const input = h('input', {
+    type: 'search',
+    placeholder: '🔍 Rechercher : jeu, joueur, note…',
+    style: 'width:100%;border:1.5px solid var(--line);border-radius:9px;padding:.45rem .7rem;background:var(--surface);color:var(--ink);margin-bottom:.8rem',
+    oninput: (e) => { q = e.target.value; renderList(); },
+  });
+  const listBox = h('div', {});
+  const view = h('div', {},
     h('div', { class: 'spread', style: 'margin-bottom:.9rem' },
       h('h1', {}, `📝 Parties (${state.sessions.length})`),
       h('button', { class: 'btn primary', onclick: () => openPartModal(state, refresh) }, '➕ Enregistrer une partie'),
     ),
-    sessions.length
-      ? h('section', { class: 'card' }, sessions.map((s) => sessionRow(s)))
-      : h('p', { class: 'empty-note card' }, 'Aucune partie enregistrée. Cliquez sur « Enregistrer une partie » après votre prochaine pause !'),
+    sessions.length ? [input, listBox] : listBox,
   );
+
+  renderList();
+  return view;
+
+  /** Recherche insensible à la casse et aux accents. */
+  function norm(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function matches(s) {
+    if (!q.trim()) return true;
+    const needle = norm(q.trim());
+    const g = state.games.find((x) => x.id === s.gameId);
+    if (norm(g?.name).includes(needle) || norm(s.note).includes(needle)) return true;
+    return s.results.some((r) => norm(state.players.find((p) => p.id === r.playerId)?.name).includes(needle));
+  }
+
+  function renderList() {
+    const filtered = sessions.filter(matches);
+    listBox.innerHTML = '';
+    listBox.append(
+      q.trim()
+        ? h('p', { class: 'muted small', style: 'margin:0 0 .5rem' },
+            `${filtered.length} partie${filtered.length > 1 ? 's' : ''} trouvée${filtered.length > 1 ? 's' : ''}`)
+        : null,
+      filtered.length
+        ? h('section', { class: 'card' }, filtered.map((s) => sessionRow(s)))
+        : h('p', { class: 'empty-note card' }, q.trim()
+            ? 'Aucune partie ne correspond à cette recherche.'
+            : 'Aucune partie enregistrée. Cliquez sur « Enregistrer une partie » après votre prochaine pause !'),
+    );
+  }
 
   function sessionRow(s) {
     const g = state.games.find((x) => x.id === s.gameId);

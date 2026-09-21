@@ -50,10 +50,30 @@ export function openPodiumImage(state, { periodLabel, rows, streaks, trophies })
                 .catch(() => toast('Copie impossible ici — utilisez Télécharger.', 'warn')),
             }, '📋 Copier')
           : null,
+        'clipboard' in navigator
+          ? h('button', {
+              class: 'btn',
+              title: 'Version texte, pour coller dans un message',
+              onclick: () => navigator.clipboard.writeText(podiumText({ periodLabel, rows, streaks, trophies }))
+                .then(() => toast('Podium copié en texte 📝'))
+                .catch(() => toast('Copie impossible ici.', 'warn')),
+            }, '📝 Copier en texte')
+          : null,
         h('a', { class: 'btn primary', href: url, download: name, style: 'text-decoration:none' }, '💾 Télécharger'),
       ),
     ), { wide: true });
   }, 'image/png');
+}
+
+/** Version texte du podium (avec flammes et trophées), à coller dans un message. */
+function podiumText({ periodLabel, rows, streaks, trophies }) {
+  const lines = [`🏆 ${periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1)}`];
+  rows.filter((r) => r.games > 0).slice(0, 3).forEach((r, i) => {
+    const flame = streaks.get(r.player.id) >= 2 ? ' 🔥' : '';
+    lines.push(`${['🥇', '🥈', '🥉'][i]} ${r.player.emoji} ${r.player.name}${flame} ${r.points} pt${r.points > 1 ? 's' : ''}`);
+  });
+  for (const t of trophies) lines.push(`${t.emoji} ${t.label} : ${t.p.emoji} ${t.p.name} (${t.fmt(t.v)})`);
+  return lines.join('\n');
 }
 
 /** Dessine le podium et renvoie le canvas (rendu x2 pour la netteté). */

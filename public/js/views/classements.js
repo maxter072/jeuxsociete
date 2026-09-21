@@ -183,10 +183,13 @@ export function Classements(state, refresh) {
     const total = rows.reduce((n, r) => n + r.games, 0);
     const periodLabel = mode === 'month' ? monthLabel(ym) : mode === 'week' ? `semaine ${isoWeekNumber(weekRef)}` : `l'année ${year}`;
 
-    // Flamme 🔥 : séries de victoires en cours (2 ou plus).
+    // Flamme 🔥 : séries de victoires en cours (2 ou plus), avec le détail en info-bulle.
     const streaks = new Map();
     for (const r of rows) if (r.games > 0) streaks.set(r.player.id, winStreak(state, r.player.id).current);
-    const flame = (id) => (streaks.get(id) >= 2 ? ' 🔥' : '');
+    const flameEl = (id) => {
+      const n = streaks.get(id);
+      return n >= 2 ? h('span', { title: `${n} victoire${n > 1 ? 's' : ''} de suite` }, ' 🔥') : null;
+    };
 
     // Tendance : rang actuel comparé au rang de la période précédente,
     // pour les joueurs classés les deux fois.
@@ -227,18 +230,18 @@ export function Classements(state, refresh) {
     // Trophées du mois — partagés par l'affichage et l'image PNG.
     const trophies = mode === 'month' ? monthTrophies(state, rows, periodSessions) : [];
 
-    if (mode === 'month') {
-      card.append(
-        h('div', { class: 'spread', style: 'margin-bottom:.8rem' },
-          h('span', { class: 'muted small' }, `${periodSessions.length} partie${periodSessions.length > 1 ? 's' : ''} en ${periodLabel}`),
-          h('button', {
-            class: 'btn sm',
-            title: 'Image du podium à partager dans le canal de l’équipe',
-            onclick: () => openPodiumImage(state, { periodLabel, rows, streaks, trophies }),
-          }, '🖼️ Podium en PNG'),
-        ),
-      );
-    }
+    card.append(
+      h('div', { class: 'spread', style: 'margin-bottom:.8rem' },
+        h('span', { class: 'muted small' }, `${periodSessions.length} partie${periodSessions.length > 1 ? 's' : ''} en ${periodLabel}`),
+        mode === 'month'
+          ? h('button', {
+              class: 'btn sm',
+              title: 'Image du podium à partager dans le canal de l’équipe',
+              onclick: () => openPodiumImage(state, { periodLabel, rows, streaks, trophies }),
+            }, '🖼️ Podium en PNG')
+          : null,
+      ),
+    );
 
     // --- podium
     const top = rows.filter((r) => r.games > 0).slice(0, 3);
@@ -251,7 +254,7 @@ export function Classements(state, refresh) {
           onclick: () => openPlayerStats(state, r.player.id),
         },
           h('span', { class: 'medal' }, medal(i + 1)),
-          h('span', { class: 'pname' }, `${r.player.emoji} ${r.player.name}${flame(r.player.id)}`),
+          h('span', { class: 'pname' }, `${r.player.emoji} ${r.player.name}`, flameEl(r.player.id)),
           h('span', { class: 'ppts' }, `${r.points} pt${r.points > 1 ? 's' : ''}`),
           h('span', { class: 'pstats' }, `${r.games} partie${r.games > 1 ? 's' : ''} · ${r.wins} victoire${r.wins > 1 ? 's' : ''}`),
         )),
@@ -282,7 +285,7 @@ export function Classements(state, refresh) {
               onclick: r.games > 0 ? () => openPlayerStats(state, r.player.id) : undefined,
             },
               h('td', {}, r.games > 0 ? (displayRank <= 3 ? medal(displayRank) : String(displayRank)) : '—'),
-              h('td', {}, `${r.player.emoji} ${r.player.name}${flame(r.player.id)}`),
+              h('td', {}, `${r.player.emoji} ${r.player.name}`, flameEl(r.player.id)),
               h('td', { class: 'num' }, String(r.games)),
               h('td', { class: 'num' }, String(r.wins)),
               h('td', { class: 'num' }, String(r.losses)),

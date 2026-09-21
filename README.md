@@ -71,7 +71,8 @@ deploy/              Exemples systemd + Nginx pour la production
   : pirates, mutins, loups-garous…), **🤝 Coop** (tout le monde gagne) et
   **💀 Perdants** (pilipili, Traître à bord… : personne ne gagne, un ou plusieurs
   perdants **perdent 1 point** et sont comptés en défaites, les rescapés marquent
-  leur point de participation).
+  leur point de participation). Un **garde-fou** signale une date dans le futur
+  (faute de frappe fréquente) avant l'enregistrement.
 - **Points** : barème par rang (défaut 5/3/2/1 puis 0) + participation (+1),
   modifiable dans Réglages. Les points sont **figés à l'enregistrement** :
   changer le barème ne réécrit jamais le passé.
@@ -80,13 +81,17 @@ deploy/              Exemples systemd + Nginx pour la production
 - **Classements** : par semaine, mois, année (navigation dans toutes les périodes passées,
   flèches de tendance ▲▼ vs période précédente : parties, victoires, défaites, taux, points)
   et **par jeu** (les plus joués, meilleur joueur — touchez un jeu pour son
-  classement détaillé). Une 🔥 flamme marque les séries de victoires en cours
-  (2 ou plus). En fin de mois : **trophées du mois** — ⏰ Assidu (le plus de parties),
+  classement détaillé). Un compteur annonce le nombre de parties de la période.
+  Une 🔥 flamme marque les séries de victoires en cours (2 ou plus — survolez-la
+  pour le détail). En fin de mois : **trophées du mois** — ⏰ Assidu (le plus de parties),
   🧭 Explorateur (le plus de jeux différents), 💀 Zagred du pilipili (le plus de défaites) ;
   en cas d'égalité, pas de trophée. Une partie sans gagnant (pilipili)
   ne distribue que les points de participation.
 - **🖼️ Podium en PNG** : bouton sur le classement mensuel — génère l'image du podium
-  (flammes et trophées compris) à partager dans le canal de l'équipe, copier ou télécharger.
+  (flammes et trophées compris) à partager dans le canal de l'équipe, copier,
+  **copier en texte** (version 📝 à coller dans un message) ou télécharger.
+- **🔍 Recherche** : dans l'historique des Parties, filtrez par jeu, joueur ou note —
+  insensible à la casse et aux accents.
 - **🥊 Duel** : depuis l'onglet Joueurs ou une fiche joueur — face-à-face entre deux
   joueurs : score, ex æquo, série en cours, détail par jeu et dernières confrontations.
 - **Fiches joueur & jeu** : cliquer sur n'importe quel joueur (podium, tableau, puces de
