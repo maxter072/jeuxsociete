@@ -313,8 +313,18 @@ export function Dashboard(state, refresh) {
 
     const monthTop = standings(state, monthSessions)[0];
 
+    // Compteur global : première partie enregistrée et temps de jeu cumulé.
+    const firstDate = state.sessions.length ? state.sessions.map((s) => s.date).sort()[0] : null;
+    const totalMin = state.sessions.reduce((n, s) => n + (state.games.find((g) => g.id === s.gameId)?.durationMin ?? 0), 0);
+
     const tiles = [
-      { label: 'Parties au total', value: state.sessions.length, sub: 'depuis le début' },
+      {
+        label: 'Parties au total',
+        value: state.sessions.length,
+        sub: firstDate
+          ? `${Math.round(totalMin / 60)} h de pause depuis le ${fmtDateShort(firstDate)}`
+          : 'depuis le début',
+      },
       { label: 'Ce mois-ci', value: monthSessions.length, sub: 'parties jouées' },
       favGame
         ? { label: 'Jeu favori', value: `${favGame.emoji} ${favGame.name}`, sub: `${favCount} partie${favCount > 1 ? 's' : ''}` }

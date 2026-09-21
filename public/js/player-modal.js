@@ -18,6 +18,7 @@ export function openPlayerStats(state, playerId) {
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 
   let games = 0, wins = 0, podiums = 0, points = 0;
+  let best = null; // meilleur score en une partie
   const perGame = new Map();
   for (const s of played) {
     const r = s.results.find((x) => x.playerId === playerId);
@@ -25,8 +26,12 @@ export function openPlayerStats(state, playerId) {
     points += r.points;
     if (r.rank === 1) wins++;
     if (r.rank <= 3) podiums++;
+    if (!best || r.points > best.points) best = { points: r.points, date: s.date, gameId: s.gameId };
     perGame.set(s.gameId, (perGame.get(s.gameId) || 0) + 1);
   }
+  // Première partie du joueur (« joueur depuis le … ») — played est triée du
+  // plus récent au plus ancien, donc la dernière entrée est la plus vieille.
+  const since = played.length ? played[played.length - 1].date : null;
 
   // Points par semaine (les 8 dernières, semaine courante comprise).
   const now = new Date();
@@ -70,6 +75,15 @@ export function openPlayerStats(state, playerId) {
     streak.current >= 2
       ? h('p', { class: 'small', style: 'margin:.5rem 0 0' },
           `🔥 Série en cours : ${streak.current} victoire${streak.current > 1 ? 's' : ''} — record : ${streak.best}`)
+      : null,
+    best
+      ? h('p', { class: 'small', style: 'margin:.35rem 0 0' },
+          `🏅 Record : ${fmtPts(best.points)} pt${Math.abs(best.points) > 1 ? 's' : ''} en une partie (${
+            state.games.find((g) => g.id === best.gameId)?.name ?? 'jeu supprimé'
+          }, ${fmtDateShort(best.date)})`)
+      : null,
+    since
+      ? h('p', { class: 'small', style: 'margin:.35rem 0 0' }, `📅 Joueur depuis le ${fmtDateShort(since)}`)
       : null,
     h('h4', { class: 'pm-title' }, `📈 Points par semaine (${WEEKS_SHOWN} dernières)`),
     h('div', { class: 'spark' }, weeks.map((w) =>

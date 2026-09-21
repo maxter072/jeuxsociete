@@ -10,14 +10,40 @@ export function Jeux(state, refresh) {
   const counts = new Map();
   for (const s of state.sessions) counts.set(s.gameId, (counts.get(s.gameId) || 0) + 1);
 
-  const sorted = [...state.games].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, 'fr'));
+  // Tri : « 🔤 A→Z » ou « 🔥 Plus joués » (les inactifs restent toujours en fin de liste).
+  let sort = 'name'; // 'name' | 'plays'
+  const grid = h('div', { class: 'grid-games' });
+
+  function sortedGames() {
+    return [...state.games].sort((a, b) =>
+      Number(b.active) - Number(a.active)
+        || (sort === 'plays'
+          ? ((counts.get(b.id) || 0) - (counts.get(a.id) || 0) || a.name.localeCompare(b.name, 'fr'))
+          : a.name.localeCompare(b.name, 'fr')));
+  }
+
+  function renderGrid() {
+    grid.innerHTML = '';
+    grid.append(...sortedGames().map((g) => gameCard(g)));
+  }
+
+  const btnName = h('button', { class: 'btn sm primary', onclick: () => { if (sort !== 'name') { sort = 'name'; syncSort(); renderGrid(); } } }, '🔤 A→Z');
+  const btnPlays = h('button', { class: 'btn sm ghost', onclick: () => { if (sort !== 'plays') { sort = 'plays'; syncSort(); renderGrid(); } } }, '🔥 Plus joués');
+  function syncSort() {
+    btnName.className = `btn sm ${sort === 'name' ? 'primary' : 'ghost'}`;
+    btnPlays.className = `btn sm ${sort === 'plays' ? 'primary' : 'ghost'}`;
+  }
+  renderGrid();
 
   return h('div', {},
     h('div', { class: 'spread', style: 'margin-bottom:.9rem' },
       h('h1', {}, `🎲 Les jeux (${state.games.length})`),
       h('button', { class: 'btn primary', onclick: () => openGameModal(null, refresh) }, '➕ Ajouter un jeu'),
     ),
-    h('div', { class: 'grid-games' }, sorted.map((g) => gameCard(g))),
+    h('div', { class: 'row', style: 'gap:.4rem;margin-bottom:.9rem' },
+      h('span', { class: 'muted small' }, 'Trier :'), btnName, btnPlays,
+    ),
+    grid,
     h('p', { class: 'muted small', style: 'margin-top:.6rem' },
       `Le tirage n’utilise que les jeux actifs d’une durée ≤ ${state.config.breakMinutes} min (modifiable dans Réglages).`),
   );
@@ -42,7 +68,9 @@ export function Jeux(state, refresh) {
       ),
       g.description ? h('p', { class: 'muted small' }, g.description) : null,
       h('div', { class: 'spread', style: 'margin-top:.6rem' },
-        h('span', { class: 'muted small' }, played ? `joué ${played} fois` : 'jamais joué'),
+        played
+          ? h('span', { class: 'muted small' }, `joué ${played} fois`)
+          : h('span', { class: 'chip gold', title: 'Pas encore tiré — une bonne occasion de le découvrir !' }, '🌱 Jamais joué'),
         h('div', { class: 'row', style: 'gap:.35rem' },
           h('button', { class: 'btn sm', onclick: () => openGameModal(g, refresh) }, '✏️ Modifier'),
           h('button', {

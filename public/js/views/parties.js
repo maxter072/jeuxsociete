@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { h, toast, confirmDialog, fmtDate, resultIcon, fmtPts } from '../ui.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
+import { openGameStats } from '../game-modal.js';
 
 export function Parties(state, refresh) {
   const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
@@ -63,7 +64,11 @@ export function Parties(state, refresh) {
     return h('div', { class: 'list-item' },
       h('span', { class: 'draw-emj', style: 'width:46px;height:46px;font-size:1.4rem;border-radius:12px' }, g?.emoji ?? '🎲'),
       h('div', { class: 'grow' },
-        h('div', { class: 'title' }, g?.name ?? 'Jeu supprimé'),
+        h('div', {
+          class: `title${g ? ' clickable' : ''}`,
+          title: g ? 'Voir la fiche du jeu' : undefined,
+          onclick: g ? () => openGameStats(state, g.id) : undefined,
+        }, g?.name ?? 'Jeu supprimé'),
         h('div', { class: 'sub' }, `${fmtDate(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
         s.note ? h('div', { class: 'sub', style: 'font-style:italic' }, `« ${s.note} »`) : null,
         h('div', { class: 'result-chips' },

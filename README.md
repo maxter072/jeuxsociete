@@ -66,6 +66,7 @@ deploy/              Exemples systemd + Nginx pour la production
 - **Accueil** : « Tirer le jeu du jour » (animation + confettis) ou choix manuel.
   Le tirage ne propose que les jeux **actifs** tenant dans le temps disponible
   et adaptés aux **présents** cochés. Les gagnants de la journée gardent leur place jusqu'au lendemain.
+  Une tuile de stats affiche le total de parties et le **temps de pause cumulé** depuis la première.
 - **Enregistrer une partie** : cocher les présents → toucher les joueurs dans l'ordre
   d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
   : pirates, mutins, loups-garous…), **🤝 Coop** (tout le monde gagne) et
@@ -92,11 +93,14 @@ deploy/              Exemples systemd + Nginx pour la production
   **copier en texte** (version 📝 à coller dans un message) ou télécharger.
 - **🔍 Recherche** : dans l'historique des Parties, filtrez par jeu, joueur ou note —
   insensible à la casse et aux accents.
+- **🎲 Vue Jeux** : tri « 🔤 A→Z » ou « 🔥 Plus joués », et pastille « 🌱 Jamais joué »
+  sur les jeux qui attendent leur tour. Le titre de l'onglet suit la vue affichée.
 - **🥊 Duel** : depuis l'onglet Joueurs ou une fiche joueur — face-à-face entre deux
   joueurs : score, ex æquo, série en cours, détail par jeu et dernières confrontations.
 - **Fiches joueur & jeu** : cliquer sur n'importe quel joueur (podium, tableau, puces de
-  résultats) ouvre son palmarès, sa série de victoires en cours et son record,
-  sa courbe de points sur 8 semaines, ses jeux préférés.
+  résultats) ouvre son palmarès, sa série de victoires en cours et son record, son record
+  de points en une partie, sa date de première partie, sa courbe de points sur 8 semaines,
+  ses jeux préférés. Le titre d'un jeu dans l'historique ouvre sa fiche.
   Dans « Par jeu », cliquer un jeu ouvre son classement détaillé et ses dernières parties.
 - **Intégrité** : un joueur ou un jeu ayant servi à une partie ne se supprime pas,
   il se **désactive** (historique intact).

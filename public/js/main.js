@@ -73,6 +73,8 @@ function buildNavs() {
 function render() {
   const path = currentPath();
   const route = ROUTES.find((r) => r.path === path) || ROUTES[0];
+  // Titre de l'onglet : « 🏆 Classements · Pause Jeux » selon la vue affichée.
+  document.title = `${route.icon} ${route.label} · Pause Jeux`;
   const view = document.getElementById('view');
   view.innerHTML = '';
   try {
