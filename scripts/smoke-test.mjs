@@ -24,6 +24,9 @@ if (state0.data.sessions?.length || state0.data.draw) {
   console.log('⚠️  Des données existantes sont présentes : le test y ajoutera et en retirera des entrées.');
 }
 check('GET /api/state', state0.status === 200);
+const health = await req('GET', '/api/health');
+check('GET /api/health', health.status === 200 && health.data?.ok === true, `uptime=${health.data?.uptime}s`);
+check('HEAD /api/health', (await req('HEAD', '/api/health')).status === 200);
 check('seed: 10 joueurs', state0.data.players?.length === 10, `${state0.data.players?.length}`);
 check('seed: 8 jeux', state0.data.games?.length === 8, `${state0.data.games?.length}`);
 check('barème par défaut', state0.data.config?.pointsByRank?.['1'] === 5);
