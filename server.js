@@ -170,6 +170,12 @@ async function handleApi(req, res, url) {
   const method = req.method;
   const body = method === 'POST' || method === 'PUT' ? await readBody(req) : null;
 
+  // Sonde de vie : ne touche ni à la base ni aux en-têtes de sécurité spécifiques,
+  // pensée pour nginx / systemd / toute sonde uptime côté VPS.
+  if (pathname === '/api/health' && (method === 'GET' || method === 'HEAD')) {
+    return json(res, 200, { ok: true, uptime: Math.round(process.uptime()) });
+  }
+
   if (pathname === '/api/state' && method === 'GET') return json(res, 200, store.publicState());
 
   if (pathname === '/api/export' && method === 'GET') {
