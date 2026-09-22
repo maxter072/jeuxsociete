@@ -62,7 +62,7 @@ await req('PUT', `/api/players/${p1.id}`, { name: p1.name, active: true });
 
 const badRank = await req('POST', '/api/sessions', { gameId: game.id, date: '2026-09-04', results: [{ playerId: p2.id, rank: 0 }] });
 check('rang invalide refusé (400)', badRank.status === 400);
-const badCfg = await req('PUT', '/api/config', { breakMinutes: 'abc' });
+const badCfg = await req('PUT', '/api/config', { participationPoints: 'abc' });
 check('config invalide refusée (400)', badCfg.status === 400);
 const unknown = await req('GET', '/api/inconnu');
 check('route inconnue (404)', unknown.status === 404);
@@ -140,6 +140,15 @@ check(
 // int('') ne vaut plus 0 : champ vide refusé.
 const emptyCfg = await req('PUT', '/api/config', { participationPoints: '' });
 check('config vide refusée (400)', emptyCfg.status === 400, `status=${emptyCfg.status}`);
+
+// Corps trop volumineux : le serveur doit répondre un 413 lisible (JSON),
+// pas couper la connexion avant que le client ait pu lire l'erreur.
+const big = await fetch(base + '/api/players', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'x'.repeat(3_000_000) }),
+});
+check('corps trop volumineux refusé (413 JSON lisible)', big.status === 413 && !!(await big.json()).error, `status=${big.status}`);
 
 // Rafale de mutations : la limite de débit finit par répondre 429.
 let got429 = false;

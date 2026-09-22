@@ -1,4 +1,4 @@
-// Vue « Réglages » : barème de points, durée de pause, sauvegarde/restauration.
+// Vue « Réglages » : barème de points, sauvegarde/restauration.
 
 import { api } from '../api.js';
 import { h, toast, confirmDialog } from '../ui.js';
@@ -58,24 +58,6 @@ export function Reglages(state, refresh) {
     h('div', { class: 'form-actions' }, h('button', { type: 'submit', class: 'btn primary' }, '💾 Enregistrer le barème')),
   );
 
-  // ------------------------------------------------ durée de la pause
-
-  const breakI = h('input', { type: 'number', min: 5, max: 300, value: cfg.breakMinutes, style: 'width:110px' });
-  const breakForm = h('form', {
-    onsubmit: async (e) => {
-      e.preventDefault();
-      try {
-        await api.setConfig({ breakMinutes: Number(breakI.value) });
-        toast('Durée de pause mise à jour ⏱');
-        await refresh();
-      } catch (err) { toast(err.message, 'err'); }
-    },
-  },
-    h('div', { class: 'row' }, breakI, h('span', { class: 'muted' }, 'minutes')),
-    h('p', { class: 'muted small' }, 'Le tirage au sort ne propose que les jeux dont la durée moyenne tient dans ce temps.'),
-    h('div', { class: 'form-actions' }, h('button', { type: 'submit', class: 'btn primary' }, '💾 Enregistrer')),
-  );
-
   // ------------------------------------------------ données
 
   const fileI = h('input', {
@@ -122,10 +104,6 @@ export function Reglages(state, refresh) {
         'Points attribués selon le rang d’arrivée, plus un point de participation facultatif. '
         + 'Les points sont figés au moment de l’enregistrement : modifier le barème n’affecte que les futures parties.'),
       pointsForm,
-    ),
-    h('section', { class: 'card' },
-      h('h2', {}, '⏱ Durée de la pause'),
-      breakForm,
     ),
     dataCard,
     h('section', { class: 'card' },

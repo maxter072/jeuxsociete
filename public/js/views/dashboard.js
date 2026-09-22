@@ -1,25 +1,11 @@
-// Vue « Accueil » : jeu du jour (tirage animé ou choix manuel), temps disponible,
-// présents, top 3, stats, dernières parties (édition/suppression rapides).
+// Vue « Accueil » : jeu du jour (tirage animé ou choix manuel), présents,
+// top 3, stats, dernières parties (édition/suppression rapides).
 
 import { api } from '../api.js';
 import { h, toast, confetti, fmtDateShort, medal, resultIcon, fmtPts, openModal, confirmDialog } from '../ui.js';
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
-
-// Temps disponible pour le tirage : mémorisé localement, réglable sur l'accueil.
-const DRAW_MIN_KEY = 'pj_draw_minutes';
-
-function getDrawMinutes(state) {
-  let v = null;
-  try { v = Number(localStorage.getItem(DRAW_MIN_KEY)); } catch { v = null; }
-  if (!Number.isInteger(v) || v < 5 || v > 300) v = state.config.breakMinutes;
-  return v;
-}
-
-function setDrawMinutes(min) {
-  try { localStorage.setItem(DRAW_MIN_KEY, String(min)); } catch { /* pas de stockage */ }
-}
 
 export function Dashboard(state, refresh) {
   const now = new Date();
@@ -43,12 +29,11 @@ export function Dashboard(state, refresh) {
     const drawn = state.draw && state.draw.date === todayISOstr ? state.games.find((g) => g.id === state.draw.gameId) : null;
 
     if (!drawn) {
-      const minutes = getDrawMinutes(state);
       return h('section', { class: 'card hero-draw' },
         h('div', { class: 'draw-emj floaty' }, '🎲'),
         h('div', { class: 'draw-info' },
           h('h1', {}, 'Quel jeu aujourd’hui ?'),
-          h('p', { class: 'muted' }, `Tirage parmi les jeux de ${minutes} min max, adaptés aux joueurs présents.`),
+          h('p', { class: 'muted' }, 'Tirage parmi les jeux actifs, adaptés aux joueurs présents.'),
         ),
         h('div', { class: 'draw-actions' },
           h('button', { class: 'btn gold big', onclick: startDraw }, '🎲 Tirer le jeu du jour'),
@@ -81,10 +66,9 @@ export function Dashboard(state, refresh) {
 
   async function startDraw() {
     const presents = getPresents(state);
-    const minutes = getDrawMinutes(state);
-    const eligible = eligibleGames(state, presents.size, minutes);
+    const eligible = eligibleGames(state, presents.size);
     if (!eligible.length) {
-      toast(`Aucun jeu de ${minutes} min max pour ${presents.size} joueur(s) : ajustez le temps ou les présents, ou choisissez manuellement.`, 'warn');
+      toast(`Aucun jeu actif pour ${presents.size} joueur(s) : cochez les présents ou choisissez manuellement.`, 'warn');
       return;
     }
     const chosen = eligible[Math.floor(Math.random() * eligible.length)];
@@ -110,7 +94,6 @@ export function Dashboard(state, refresh) {
 
   /** Sélection manuelle du jeu du jour (on peut sortir des critères du tirage). */
   function openPickGameModal() {
-    const minutes = getDrawMinutes(state);
     const presents = getPresents(state);
     const games = state.games
       .filter((g) => g.active)
@@ -118,11 +101,11 @@ export function Dashboard(state, refresh) {
 
     const content = h('div', {},
       h('p', { class: 'muted small', style: 'margin-top:0' },
-        `Filtre actuel : ${minutes} min max, ${presents.size} joueur(s). Les jeux hors critères restent choisissables.`),
+        `${presents.size} joueur(s) coché(s) sur l’accueil. Les jeux hors critères restent choisissables.`),
       games.length
         ? games.map((g) => {
-            const fits = g.durationMin <= minutes &&
-              (presents.size === 0 || (presents.size >= g.minPlayers && presents.size <= g.maxPlayers));
+            const fits =
+              presents.size === 0 || (presents.size >= g.minPlayers && presents.size <= g.maxPlayers);
             return h('div', {
               class: 'list-item pick-row',
               onclick: async () => {
@@ -211,13 +194,10 @@ export function Dashboard(state, refresh) {
     });
   }
 
-  // ------------------------------------------------ joueurs présents + temps
+  // ------------------------------------------------ joueurs présents
 
   function buildPresents() {
     const presents = getPresents(state);
-    const minutes = getDrawMinutes(state);
-
-    const timeOptions = [...new Set([15, 20, 30, 40, 45, 60, state.config.breakMinutes])].sort((a, b) => a - b);
 
     return h('section', { class: 'card tight' },
       h('div', { class: 'spread' },
@@ -226,15 +206,6 @@ export function Dashboard(state, refresh) {
       ),
       h('div', { class: 'row', style: 'gap:.4rem' },
         state.players.filter((p) => p.active).map(chipFor)),
-      h('div', { class: 'row', style: 'gap:.4rem;margin-top:.6rem' },
-        h('span', { class: 'muted small', style: 'font-weight:700' }, '⏱ Temps disponible :'),
-        timeOptions.map((v) =>
-          h('button', {
-            type: 'button',
-            class: `toggle${v === minutes ? ' on' : ''}`,
-            onclick: () => { setDrawMinutes(v); rerender(); },
-          }, `${v} min`)),
-      ),
     );
 
     function chipFor(p) {

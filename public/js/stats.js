@@ -179,13 +179,11 @@ export function monthTrophies(state, rows, periodSessions) {
   return trophies;
 }
 
-/** Jeux éligibles au tirage : actifs, tenir dans le temps disponible, adaptés au nombre de présents. */
-export function eligibleGames(state, presentCount, maxMinutes) {
-  const limit = maxMinutes ?? state.config.breakMinutes;
+/** Jeux éligibles au tirage : actifs et adaptés au nombre de présents. */
+export function eligibleGames(state, presentCount) {
   return state.games.filter(
     (g) =>
       g.active &&
-      g.durationMin <= limit &&
       (presentCount === 0 || (presentCount >= g.minPlayers && presentCount <= g.maxPlayers)),
   );
 }

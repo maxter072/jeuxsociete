@@ -45,7 +45,7 @@ export function Jeux(state, refresh) {
     ),
     grid,
     h('p', { class: 'muted small', style: 'margin-top:.6rem' },
-      `Le tirage n’utilise que les jeux actifs d’une durée ≤ ${state.config.breakMinutes} min (modifiable dans Réglages).`),
+      'Le tirage n’utilise que les jeux actifs, adaptés aux joueurs cochés sur l’accueil.'),
   );
 
   function gameCard(g) {

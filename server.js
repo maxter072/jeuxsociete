@@ -29,7 +29,7 @@ const SEC_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Content-Security-Policy':
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'",
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 };
 
 function json(res, status, data) {
@@ -44,12 +44,14 @@ function json(res, status, data) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let size = 0;
+    let over = false;
     const chunks = [];
     req.on('data', (chunk) => {
+      if (over) return; // corps trop gros : on consomme sans stocker, pour que le client puisse lire le 413
       size += chunk.length;
       if (size > 2_000_000) {
+        over = true;
         reject(new ApiError(413, 'Requête trop volumineuse'));
-        req.destroy();
         return;
       }
       chunks.push(chunk);
@@ -82,13 +84,53 @@ function checkMutation(req) {
     }
   }
   const origin = req.headers.origin;
-  if (origin && origin !== 'null') {
+  if (origin) {
+    // « Origin: null » accompagne les requêtes sensibles venues d'un contexte
+    // opaque (sandbox iframe, fichier local) : jamais légitime ici.
+    if (origin === 'null') throw new ApiError(403, 'Origine non autorisée');
     let originHost = null;
     try { originHost = new URL(origin).host; } catch { /* origine malformée */ }
     if (originHost !== (req.headers.host || '')) {
       throw new ApiError(403, 'Origine non autorisée');
     }
   }
+}
+
+// ------------------------------------------------------------------ hôte + IP
+
+// IP réelle du client. Derrière le reverse proxy (nginx sur la même machine),
+// toutes les requêtes arrivent depuis 127.0.0.1 : TRUST_PROXY=1 autorise alors
+// l'en-tête X-Real-IP posé par nginx pour distinguer les clients (limite de
+// débit, journal). Sans cet environnement, les en-têtes sont ignorés — un
+// client direct ne peut pas se forger une fausse IP.
+const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+
+function clientIp(req) {
+  if (TRUST_PROXY) {
+    const fwd = String(req.headers['x-real-ip'] || '').trim()
+      || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    if (fwd) return fwd;
+  }
+  return req.socket.remoteAddress || '?';
+}
+
+// Allowlist des valeurs acceptées pour l'en-tête Host (séparées par des
+// virgules). Bloque le « DNS rebinding », où un domaine attaquant résolu vers
+// ce serveur enverrait son propre Host — ce qui contournerait la vérification
+// d'Origine. Vide = filtrage désactivé (comportement historique, LAN direct).
+const ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS || '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
+
+function checkHost(req) {
+  if (!ALLOWED_HOSTS.length) return;
+  const host = String(req.headers.host || '');
+  if (!host) return; // HTTP/1.0 sans Host : rien à comparer
+  const bare = host.split(':')[0].toLowerCase();
+  const ok = ALLOWED_HOSTS.some((allowed) => {
+    const a = allowed.toLowerCase();
+    return a === bare || a === host.toLowerCase();
+  });
+  if (!ok) throw new ApiError(421, 'Hôte non autorisé');
 }
 
 // Mini limite de débit par IP sur les mutations (zéro dépendance) : borne
@@ -98,11 +140,17 @@ const RATE_MAX = 60; // mutations par fenêtre et par IP
 const buckets = new Map();
 
 function rateLimit(req) {
-  const ip = req.socket.remoteAddress || '?';
+  const ip = clientIp(req);
   const now = Date.now();
+  if (buckets.size > 5000) {
+    // Garde-fou mémoire : on ne vide pas tout (les clients légitimes gardent
+    // leur compteur), on ne retire que les fenêtres expirées.
+    for (const [k, b] of buckets) {
+      if (now - b.t > RATE_WINDOW) buckets.delete(k);
+    }
+  }
   const b = buckets.get(ip);
   if (!b || now - b.t > RATE_WINDOW) {
-    if (buckets.size > 5000) buckets.clear(); // garde-fou mémoire
     buckets.set(ip, { n: 1, t: now });
     return;
   }
@@ -112,6 +160,9 @@ function rateLimit(req) {
 
 async function handleApi(req, res, url) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
+    // Journal des mutations (refusées comme acceptées) : une ligne lisible
+    // dans journald / nohup pour retracer qui a fait quoi, et quand.
+    console.log(`${new Date().toISOString()} ${clientIp(req)} ${req.method} ${url.pathname}`);
     checkMutation(req);
     rateLimit(req);
   }
@@ -194,6 +245,7 @@ function serveStatic(req, res, pathname) {
 
 const server = http.createServer(async (req, res) => {
   try {
+    checkHost(req); // toutes les requêtes : API comme statique
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
     return serveStatic(req, res, url.pathname);
@@ -205,8 +257,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 const [major] = process.versions.node.split('.').map(Number);
-if (major < 18) {
-  console.error('Node.js >= 18 est requis.');
+if (major < 20) {
+  console.error('Node.js >= 20 est requis (les versions antérieures ne sont plus maintenues).');
   process.exit(1);
 }
 

@@ -4,7 +4,7 @@ Application web pour les pauses jeux de société d'équipe : tirage du jeu du j
 enregistrement des parties en moins d'une minute, classements par semaine / mois / année
 et par jeu, fiches joueur et jeu avec stats détaillées.
 
-**Zéro dépendance, zéro build** : il suffit de Node.js ≥ 18.
+**Zéro dépendance, zéro build** : il suffit de Node.js ≥ 20.
 
 ---
 
@@ -64,8 +64,8 @@ deploy/              Exemples systemd + Nginx pour la production
 ## 🎮 Fonctionnement
 
 - **Accueil** : « Tirer le jeu du jour » (animation + confettis) ou choix manuel.
-  Le tirage ne propose que les jeux **actifs** tenant dans le temps disponible
-  et adaptés aux **présents** cochés. Les gagnants de la journée gardent leur place jusqu'au lendemain.
+  Le tirage ne propose que les jeux **actifs** adaptés aux **présents** cochés.
+  Les gagnants de la journée gardent leur place jusqu'au lendemain.
   Une tuile de stats affiche le total de parties et le **temps de pause cumulé** depuis la première.
 - **Enregistrer une partie** : cocher les présents → toucher les joueurs dans l'ordre
   d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
@@ -114,10 +114,21 @@ Outil prévu pour un **LAN de confiance** (bureau) : pas d'authentification.
 Pour l'exposer, ajoutez au minimum une *basic auth* Nginx.
 
 Protections intégrées côté serveur : mutations réservées au JSON d'une origine
-identique (anti-CSRF), limite de débit par IP, en-têtes de sécurité (CSP,
-nosniff, anti-iframe), import de sauvegarde entièrement revalidé (entités,
-volumes, points recalculés), chemin disque jamais exposé, plafond de 10 000
-parties, corps de requête limité à 2 Mo.
+identique (anti-CSRF, `Origin: null` refusé), limite de débit par IP, en-têtes
+de sécurité (CSP stricte avec `object-src`/`base-uri`, nosniff, anti-iframe),
+import de sauvegarde entièrement revalidé (entités, volumes, points recalculés),
+chemin disque jamais exposé, plafond de 10 000 parties, corps de requête limité
+à 2 Mo (le client reçoit bien l'erreur 413), journal des mutations (date, IP,
+méthode, route), et réparation automatique au démarrage : si `db.json` est
+corrompu, le serveur repart de la copie `.bak` (le fichier illisible est mis de
+côté, jamais écrasé).
+
+Variables d'environnement supplémentaires pour la production :
+
+| Variable         | Rôle                                                                   |
+|------------------|------------------------------------------------------------------------|
+| `TRUST_PROXY=1`  | Derrière Nginx en local : l'IP client est lue dans `X-Real-IP` (limite de débit, journal) |
+| `ALLOWED_HOSTS`  | Hosts acceptés, séparés par des virgules (anti DNS-rebinding ; 421 sinon). Vide = désactivé |
 
 ```bash
 # 1. Installer
