@@ -28,6 +28,8 @@ const MIME = {
 const SEC_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'X-Robots-Tag': 'noindex', // app privée d'équipe : pas d'indexation moteur
   'Content-Security-Policy':
     "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 };
