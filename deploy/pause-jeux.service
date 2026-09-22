@@ -23,6 +23,8 @@ RestartSec=3
 # Durcissement minimal
 NoNewPrivileges=true
 ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
 ReadWritePaths=/opt/pause-jeux/data
 
 [Install]
