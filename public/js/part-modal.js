@@ -274,7 +274,7 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
         h('div', { class: 'row', style: 'gap:.4rem' }, presentChips),
       ),
       h('div', { class: 'field' },
-        h('span', {}, loser ? '💀 Perdants' : multi ? '🏆 Gagnants & perdants' : '🏁 Classement'),
+        h('span', {}, loser ? '💀 Perdants' : multi ? '🏆 Gagnants & perdants' : '🏁 Gagnants'),
         h('p', { class: 'small muted', style: 'margin:.1rem 0 .55rem' }, rankHint),
         h('div', { class: 'row', style: 'gap:.4rem' }, ranked, rankPool),
         h('div', { class: 'row', style: 'gap:.4rem;margin-top:.7rem' }, loserBtn, multiBtn, coopBtn, resetBtn),
