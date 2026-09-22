@@ -43,7 +43,7 @@ PORT=3001 DATA_DIR=/tmp/pj-test node server.js
 
 ```bash
 node server.js &        # puis :
-node scripts/smoke-test.mjs 3000
+npm test                # équivalent à : node scripts/smoke-test.mjs 3000
 ```
 
 ---
