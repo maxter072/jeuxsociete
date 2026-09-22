@@ -27,10 +27,13 @@ function initTheme() {
   try { saved = localStorage.getItem('pj_theme'); } catch { /* pas de stockage */ }
   if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
   const btn = document.getElementById('theme-toggle');
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
   const sync = () => {
     const dark = matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.dataset.theme === 'dark';
     const light = document.documentElement.dataset.theme === 'light';
     btn.textContent = dark && !light ? '☀️' : '🌙';
+    // La barre du navigateur mobile suit le thème actif
+    if (metaTheme) metaTheme.setAttribute('content', dark && !light ? '#141220' : '#f4eee1');
   };
   btn.addEventListener('click', () => {
     const cur = document.documentElement.dataset.theme;
