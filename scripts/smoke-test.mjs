@@ -91,6 +91,64 @@ check('reset total (1 partie)', rAll.status === 200 && rAll.data.removed === 1, 
 const rBad = await req('POST', '/api/sessions/reset', { from: 'nimp', to: '2026-09-30' });
 check('reset période invalide refusé (400)', rBad.status === 400);
 
+// ---- Sécurité : anti-CSRF, validation d'import, en-têtes, limite de débit
+
+// Un POST cross-origin « simple » (text/plain, sans preflight) doit être refusé.
+const csrf = await fetch(base + '/api/players', {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain' },
+  body: JSON.stringify({ name: 'CSRF' }),
+});
+check('POST text/plain refusé (415)', csrf.status === 415, `status=${csrf.status}`);
+
+// Origine étrangère refusée, même origine acceptée.
+const evil = await fetch(base + '/api/players', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Origin: 'http://site-pirate.example' },
+  body: JSON.stringify({ name: 'Pirate' }),
+});
+check('POST origine étrangère refusé (403)', evil.status === 403, `status=${evil.status}`);
+const friend = await fetch(base + '/api/players', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Origin: base },
+  body: JSON.stringify({ name: 'Test Auto', emoji: '🧪' }),
+});
+check('POST même origine accepté', friend.status === 201, `status=${friend.status}`);
+await req('DELETE', `/api/players/${(await friend.json()).id}`);
+
+// Import corrompu refusé (jeu inconnu), puis aller-retour export → import OK.
+const badImport = await req('POST', '/api/import', {
+  config: {}, players: [], games: [],
+  sessions: [{ gameId: 'inconnu', results: [{ playerId: 'x', rank: 1 }] }],
+});
+check('import corrompu refusé (400)', badImport.status === 400, `status=${badImport.status}`);
+const backup = await (await fetch(base + '/api/export')).json();
+const reImport = await req('POST', '/api/import', backup);
+check('ré-import de la sauvegarde accepté (200)', reImport.status === 200, `status=${reImport.status}`);
+
+// Le serveur n'expose pas son chemin disque.
+const st = await req('GET', '/api/state');
+check('chemin serveur non exposé', !String(st.data.meta?.dataFile || '').startsWith('/'), st.data.meta?.dataFile);
+
+// En-têtes de sécurité sur la page.
+const page2 = await fetch(base + '/');
+check(
+  'en-têtes de sécurité présents',
+  page2.headers.get('x-content-type-options') === 'nosniff' && !!page2.headers.get('content-security-policy'),
+);
+
+// int('') ne vaut plus 0 : champ vide refusé.
+const emptyCfg = await req('PUT', '/api/config', { participationPoints: '' });
+check('config vide refusée (400)', emptyCfg.status === 400, `status=${emptyCfg.status}`);
+
+// Rafale de mutations : la limite de débit finit par répondre 429.
+let got429 = false;
+for (let i = 0; i < 120 && !got429; i++) {
+  const r = await req('POST', '/api/draw', { gameId: null });
+  if (r.status === 429) got429 = true;
+}
+check('limite de débit en rafale (429)', got429);
+
 // État final : identique à l'état initial (les entrées de test ont été retirées)
 const stateF = await req('GET', '/api/state');
 check(

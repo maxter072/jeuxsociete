@@ -22,8 +22,22 @@ const MIME = {
   '.woff2': 'font/woff2',
 };
 
+// En-têtes de sécurité sur toutes les réponses : l'app est 100 % locale
+// (scripts, styles et données viennent d'ici — data:/blob: servent aux
+// images générées côté navigateur), on interdit l'iframe et le reniflage.
+const SEC_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy':
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'",
+};
+
 function json(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    ...SEC_HEADERS,
+  });
   res.end(JSON.stringify(data));
 }
 
@@ -54,7 +68,53 @@ function readBody(req) {
 
 // ------------------------------------------------------------------ API
 
+// --- protections des mutations --------------------------------------------
+// Un POST cross-origin en text/plain n'est pas soumis au preflight CORS :
+// une page Web piégée pourrait donc atteindre l'API depuis le navigateur
+// d'un joueur. On n'accepte que du JSON (l'app envoie toujours ce type),
+// et — si l'en-tête Origin est fourni — uniquement depuis notre hôte.
+
+function checkMutation(req) {
+  if (req.method === 'POST' || req.method === 'PUT') {
+    const ct = String(req.headers['content-type'] || '');
+    if (!ct.startsWith('application/json')) {
+      throw new ApiError(415, 'Content-Type application/json requis');
+    }
+  }
+  const origin = req.headers.origin;
+  if (origin && origin !== 'null') {
+    let originHost = null;
+    try { originHost = new URL(origin).host; } catch { /* origine malformée */ }
+    if (originHost !== (req.headers.host || '')) {
+      throw new ApiError(403, 'Origine non autorisée');
+    }
+  }
+}
+
+// Mini limite de débit par IP sur les mutations (zéro dépendance) : borne
+// l'usure disque (.bak + réécriture à chaque requête) et les boucles abusives.
+const RATE_WINDOW = 10_000; // ms
+const RATE_MAX = 60; // mutations par fenêtre et par IP
+const buckets = new Map();
+
+function rateLimit(req) {
+  const ip = req.socket.remoteAddress || '?';
+  const now = Date.now();
+  const b = buckets.get(ip);
+  if (!b || now - b.t > RATE_WINDOW) {
+    if (buckets.size > 5000) buckets.clear(); // garde-fou mémoire
+    buckets.set(ip, { n: 1, t: now });
+    return;
+  }
+  b.n += 1;
+  if (b.n > RATE_MAX) throw new ApiError(429, 'Trop de requêtes — réessayez dans un instant.');
+}
+
 async function handleApi(req, res, url) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    checkMutation(req);
+    rateLimit(req);
+  }
   const { pathname } = url;
   const method = req.method;
   const body = method === 'POST' || method === 'PUT' ? await readBody(req) : null;
@@ -65,6 +125,7 @@ async function handleApi(req, res, url) {
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Disposition': 'attachment; filename="pause-jeux-sauvegarde.json"',
+      'X-Content-Type-Options': 'nosniff',
     });
     return res.end(JSON.stringify(store.publicState(), null, 2));
   }
@@ -107,14 +168,22 @@ function serveStatic(req, res, pathname) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Méthode non autorisée' });
   const rel = pathname === '/' ? '/index.html' : pathname;
   const file = path.normalize(path.join(PUBLIC_DIR, rel));
-  if (!file.startsWith(PUBLIC_DIR)) return json(res, 403, { error: 'Accès interdit' });
+  // Comparaison avec le séparateur final : un dossier frère nommé
+  // « public-quelquechose » ne doit jamais être servi.
+  if (file !== PUBLIC_DIR && !file.startsWith(PUBLIC_DIR + path.sep)) {
+    return json(res, 403, { error: 'Accès interdit' });
+  }
 
   let target = file;
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
     target = path.join(PUBLIC_DIR, 'index.html'); // repli SPA
   }
   const ext = path.extname(target).toLowerCase();
-  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+  res.writeHead(200, {
+    'Content-Type': MIME[ext] || 'application/octet-stream',
+    'Cache-Control': 'no-cache',
+    ...SEC_HEADERS,
+  });
   if (req.method === 'HEAD') return res.end();
   const stream = fs.createReadStream(target);
   stream.on('error', () => res.destroy()); // fichier disparu entre-temps : on coupe net

@@ -113,6 +113,12 @@ deploy/              Exemples systemd + Nginx pour la production
 Outil prévu pour un **LAN de confiance** (bureau) : pas d'authentification.
 Pour l'exposer, ajoutez au minimum une *basic auth* Nginx.
 
+Protections intégrées côté serveur : mutations réservées au JSON d'une origine
+identique (anti-CSRF), limite de débit par IP, en-têtes de sécurité (CSP,
+nosniff, anti-iframe), import de sauvegarde entièrement revalidé (entités,
+volumes, points recalculés), chemin disque jamais exposé, plafond de 10 000
+parties, corps de requête limité à 2 Mo.
+
 ```bash
 # 1. Installer
 mkdir -p /opt/pause-jeux && cp -r server.js lib public package.json /opt/pause-jeux/
