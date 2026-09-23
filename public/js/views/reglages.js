@@ -92,7 +92,12 @@ export function Reglages(state, refresh) {
       }
     }
     const csv = '﻿' + rows
-      .map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(';'))
+      .map((row) => row.map((v) => {
+        // Anti-injection de formule : un texte commençant par = + - @ serait
+        // exécuté comme formule par Excel/LibreOffice — on le neutralise.
+        const safe = /^[=+\-@\t\r]/.test(String(v)) ? `'${v}` : v;
+        return `"${String(safe).replaceAll('"', '""')}"`;
+      }).join(';'))
       .join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = h('a', { href: url, download: 'pause-jeux-parties.csv' });
