@@ -2,7 +2,7 @@
 // top 3, stats, dernières parties (édition/suppression rapides).
 
 import { api } from '../api.js';
-import { h, toast, confetti, fmtDateShort, medal, resultIcon, fmtPts, openModal, confirmDialog } from '../ui.js';
+import { h, toast, confetti, fmtDateShort, fmtDateWeek, medal, resultIcon, fmtPts, openModal, confirmDialog } from '../ui.js';
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
@@ -205,7 +205,15 @@ export function Dashboard(state, refresh) {
     return h('section', { class: 'card tight' },
       h('div', { class: 'spread' },
         h('h2', {}, `👥 Joueurs présents (${presents.size})`),
-        h('span', { class: 'muted small' }, 'le tirage tient compte de ces choix'),
+        h('div', { class: 'row', style: 'gap:.7rem' },
+          presents.size ? h('button', {
+            type: 'button',
+            class: 'small',
+            style: 'background:none;border:none;padding:0;cursor:pointer;color:var(--coral);font-weight:700;font-family:inherit',
+            onclick: () => { setPresents(new Set()); rerender(); },
+          }, '✕ Tout décocher') : null,
+          h('span', { class: 'muted small' }, 'le tirage tient compte de ces choix'),
+        ),
       ),
       h('div', { class: 'row', style: 'gap:.4rem' },
         state.players.filter((p) => p.active).map(chipFor)),
@@ -371,7 +379,7 @@ export function Dashboard(state, refresh) {
               h('span', { class: 'draw-emj', style: 'width:46px;height:46px;font-size:1.4rem;border-radius:12px' }, g?.emoji ?? '🎲'),
               h('div', { class: 'grow' },
                 h('div', { class: 'title' }, g?.name ?? 'Jeu supprimé'),
-                h('div', { class: 'sub' }, fmtDateShort(s.date)),
+                h('div', { class: 'sub' }, fmtDateWeek(s.date)),
                 h('div', { class: 'result-chips' },
                   [...s.results].sort((a, b) => a.rank - b.rank).map((r) => {
                     const p = state.players.find((pl) => pl.id === r.playerId);

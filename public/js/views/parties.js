@@ -1,7 +1,7 @@
 // Vue « Parties » : historique complet des sessions, édition et suppression.
 
 import { api } from '../api.js';
-import { h, toast, confirmDialog, fmtDate, resultIcon, fmtPts } from '../ui.js';
+import { h, toast, confirmDialog, fmtDate, fmtDateWeek, resultIcon, fmtPts } from '../ui.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
 import { openGameStats } from '../game-modal.js';
@@ -69,7 +69,7 @@ export function Parties(state, refresh) {
           title: g ? 'Voir la fiche du jeu' : undefined,
           onclick: g ? () => openGameStats(state, g.id) : undefined,
         }, g?.name ?? 'Jeu supprimé'),
-        h('div', { class: 'sub' }, `${fmtDate(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
+        h('div', { class: 'sub' }, `${fmtDateWeek(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
         s.note ? h('div', { class: 'sub', style: 'font-style:italic' }, `« ${s.note} »`) : null,
         h('div', { class: 'result-chips' },
           ranked.map((r) => {

@@ -29,11 +29,18 @@ export function todayISO() {
 }
 
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const dateFmtWeek = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 const dateFmtShort = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
 
 export function fmtDate(iso) {
   const d = new Date(`${iso}T12:00:00`);
   return Number.isNaN(d.getTime()) ? iso : dateFmt.format(d);
+}
+
+/** « lun. 22 sept. » : le jour de la semaine en plus, pour les listes de parties. */
+export function fmtDateWeek(iso) {
+  const d = new Date(`${iso}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? iso : dateFmtWeek.format(d);
 }
 
 export function fmtDateShort(iso) {

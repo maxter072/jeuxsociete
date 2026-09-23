@@ -17,6 +17,7 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
@@ -42,6 +43,26 @@ function json(res, status, data) {
     ...SEC_HEADERS,
   });
   res.end(JSON.stringify(data));
+}
+
+// Comme json(), mais compresse la réponse quand le client accepte gzip :
+// réservé à /api/state, dont le payload grossit avec l'historique (jusqu'à
+// 10 000 parties) — le gzip divise alors le transfert par 5 à 10.
+function jsonGz(req, res, data) {
+  if (!String(req.headers['accept-encoding'] || '').includes('gzip')) {
+    return json(res, 200, data);
+  }
+  zlib.gzip(Buffer.from(JSON.stringify(data), 'utf8'), (err, packed) => {
+    if (err) return json(res, 200, data);
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Encoding': 'gzip',
+      'Vary': 'Accept-Encoding',
+      ...SEC_HEADERS,
+    });
+    res.end(packed);
+  });
 }
 
 function readBody(req) {
@@ -179,7 +200,7 @@ async function handleApi(req, res, url) {
     return json(res, 200, { ok: true, uptime: Math.round(process.uptime()) });
   }
 
-  if (pathname === '/api/state' && method === 'GET') return json(res, 200, store.publicState());
+  if (pathname === '/api/state' && method === 'GET') return jsonGz(req, res, store.publicState());
 
   if (pathname === '/api/export' && method === 'GET') {
     res.writeHead(200, {

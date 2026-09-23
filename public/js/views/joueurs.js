@@ -11,7 +11,31 @@ const COLORS = ['#e2593f', '#7c5cbf', '#0f766e', '#2563eb', '#d97706', '#059669'
 
 export function Joueurs(state, refresh) {
   const totals = playerTotals(state);
-  const sorted = [...state.players].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, 'fr'));
+
+  // Tri : « ⭐ Par points » (défaut) ou « 🔤 A→Z » (les inactifs restent en fin de liste).
+  let sort = 'points'; // 'points' | 'name'
+  const grid = h('div', { class: 'grid-players' });
+
+  function sortedPlayers() {
+    return [...state.players].sort((a, b) =>
+      Number(b.active) - Number(a.active)
+        || (sort === 'points'
+          ? ((totals.get(b.id)?.points || 0) - (totals.get(a.id)?.points || 0) || a.name.localeCompare(b.name, 'fr'))
+          : a.name.localeCompare(b.name, 'fr')));
+  }
+
+  function render() {
+    grid.innerHTML = '';
+    grid.append(...sortedPlayers().map((p) => playerCard(p, totals.get(p.id) || { games: 0, wins: 0, points: 0 })));
+  }
+
+  const btnPoints = h('button', { class: 'btn sm primary', onclick: () => { if (sort !== 'points') { sort = 'points'; syncSort(); render(); } } }, '⭐ Par points');
+  const btnName = h('button', { class: 'btn sm ghost', onclick: () => { if (sort !== 'name') { sort = 'name'; syncSort(); render(); } } }, '🔤 A→Z');
+  function syncSort() {
+    btnPoints.className = `btn sm ${sort === 'points' ? 'primary' : 'ghost'}`;
+    btnName.className = `btn sm ${sort === 'name' ? 'primary' : 'ghost'}`;
+  }
+  render();
 
   return h('div', {},
     h('div', { class: 'spread', style: 'margin-bottom:.9rem' },
@@ -21,7 +45,10 @@ export function Joueurs(state, refresh) {
         h('button', { class: 'btn primary', onclick: () => openPlayerModal(null, refresh) }, '➕ Ajouter un joueur'),
       ),
     ),
-    h('div', { class: 'grid-players' }, sorted.map((p) => playerCard(p, totals.get(p.id) || { games: 0, wins: 0, points: 0 }))),
+    h('div', { class: 'row', style: 'gap:.4rem;margin-bottom:.9rem' },
+      h('span', { class: 'muted small' }, 'Trier :'), btnPoints, btnName,
+    ),
+    grid,
   );
 
   function playerCard(p, t) {

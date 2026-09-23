@@ -140,6 +140,22 @@ check(
   page2.headers.get('x-content-type-options') === 'nosniff' && !!page2.headers.get('content-security-policy'),
 );
 
+// Optimisations statiques : gzip, revalidation ETag (304), 404 pour fichier manquant.
+const gzRes = await fetch(base + '/js/views/dashboard.js');
+check('gzip des fichiers statiques', gzRes.headers.get('content-encoding') === 'gzip', gzRes.headers.get('content-encoding'));
+const notMod = await fetch(base + '/js/views/dashboard.js', { headers: { 'If-None-Match': gzRes.headers.get('etag') || '' } });
+check('ETag : revalidation 304', notMod.status === 304, `status=${notMod.status}`);
+const missing = await fetch(base + '/js/inexistant.js');
+check('fichier statique manquant refusé (404)', missing.status === 404, `status=${missing.status}`);
+
+// Le gros JSON de l'état part compressé quand le client accepte gzip.
+const gzState = await fetch(base + '/api/state');
+check('gzip de /api/state', gzState.headers.get('content-encoding') === 'gzip', gzState.headers.get('content-encoding'));
+
+// Le manifest PWA est servi avec le bon type MIME.
+const man = await fetch(base + '/manifest.webmanifest');
+check('manifest PWA servi', man.status === 200 && man.headers.get('content-type').startsWith('application/manifest+json'), man.headers.get('content-type'));
+
 // int('') ne vaut plus 0 : champ vide refusé.
 const emptyCfg = await req('PUT', '/api/config', { participationPoints: '' });
 check('config vide refusée (400)', emptyCfg.status === 400, `status=${emptyCfg.status}`);
