@@ -80,6 +80,29 @@ export function Reglages(state, refresh) {
     },
   });
 
+  /** Export CSV des parties (une ligne par joueur et par partie), prêt pour
+   *  Excel/LibreOffice : BOM UTF-8 et séparateur « ; » pour les coller fr. */
+  function exportCsv() {
+    const rows = [['date', 'jeu', 'joueur', 'rang', 'points', 'note']];
+    for (const s of [...state.sessions].sort((a, b) => a.date.localeCompare(b.date))) {
+      const g = state.games.find((x) => x.id === s.gameId);
+      for (const r of s.results) {
+        const p = state.players.find((x) => x.id === r.playerId);
+        rows.push([s.date, g?.name ?? '?', p?.name ?? '?', r.rank, r.points, s.note || '']);
+      }
+    }
+    const csv = '﻿' + rows
+      .map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(';'))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = h('a', { href: url, download: 'pause-jeux-parties.csv' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(`${state.sessions.length} partie(s) exportée(s) en CSV 📊`);
+  }
+
   const dataCard = h('section', { class: 'card' },
     h('h2', {}, '💾 Données & sauvegarde'),
     h('p', { class: 'muted small' }, `Les données vivent dans un unique fichier côté serveur : ${state.meta?.dataFile ?? 'data/db.json'}. Une copie .bak est conservée automatiquement avant chaque modification.`),
@@ -90,6 +113,11 @@ export function Reglages(state, refresh) {
         title: 'Remplace toutes les données actuelles (joueurs, jeux, parties, réglages) par le fichier choisi',
         onclick: () => fileI.click(),
       }, '⬆️ Restaurer une sauvegarde'),
+      h('button', {
+        class: 'btn',
+        title: 'Toutes les parties en CSV (une ligne par joueur) : date, jeu, joueur, rang, points',
+        onclick: exportCsv,
+      }, '📊 Export CSV'),
       fileI,
     ),
   );

@@ -93,8 +93,9 @@ deploy/              Exemples systemd + Nginx pour la production
   **copier en texte** (version 📝 à coller dans un message) ou télécharger.
 - **🔍 Recherche** : dans l'historique des Parties, filtrez par jeu, joueur ou note —
   insensible à la casse et aux accents.
-- **🎲 Vue Jeux** : tri « 🔤 A→Z » ou « 🔥 Plus joués », et pastille « 🌱 Jamais joué »
-  sur les jeux qui attendent leur tour. Le titre de l'onglet suit la vue affichée.
+- **🎲 Vue Jeux** : recherche, filtres par catégorie, tri « 🔤 A→Z » ou « 🔥 Plus joués »,
+  et pastille « 🌱 Jamais joué » sur les jeux qui attendent leur tour.
+  Le titre de l'onglet suit la vue affichée.
 - **🥊 Duel** : depuis l'onglet Joueurs ou une fiche joueur — face-à-face entre deux
   joueurs : score, ex æquo, série en cours, détail par jeu et dernières confrontations.
 - **Fiches joueur & jeu** : cliquer sur n'importe quel joueur (podium, tableau, puces de
@@ -105,8 +106,9 @@ deploy/              Exemples systemd + Nginx pour la production
 - **Intégrité** : un joueur ou un jeu ayant servi à une partie ne se supprime pas,
   il se **désactive** (historique intact).
 - **Sauvegarde** : tout vit dans `data/db.json`, avec une copie `.bak` automatique
-  avant chaque modification. Export/import JSON dans Réglages.
-- **Mobile** : interface responsive (barre de navigation en bas sur téléphone).
+  avant chaque modification. Export/import JSON et export CSV dans Réglages.
+- **Mobile** : interface responsive (barre de navigation en bas sur téléphone),
+  installable sur l'écran d'accueil (« Ajouter à l'écran d'accueil »).
 
 ## 🚢 Déployer en production
 

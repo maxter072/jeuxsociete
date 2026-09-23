@@ -70,11 +70,23 @@ export function openPartModal(state, refresh, { session = null, presetGameId = n
     );
 
     // --- date + note
+    const dateInput = h('input', { type: 'date', value: date, onchange: (e) => { date = e.target.value; } });
+    const yesterISO = () => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const setQuickDate = (iso) => { date = iso; dateInput.value = iso; };
     const dateField = h(
       'label',
       { class: 'field' },
       h('span', {}, '📅 Date'),
-      h('input', { type: 'date', value: date, onchange: (e) => { date = e.target.value; } }),
+      dateInput,
+      // Raccourcis : la partie est presque toujours d'aujourd'hui ou d'hier.
+      h('div', { class: 'row', style: 'gap:.4rem;margin-top:.35rem' },
+        h('button', { type: 'button', class: 'btn sm ghost', onclick: () => setQuickDate(todayISO()) }, 'Aujourd’hui'),
+        h('button', { type: 'button', class: 'btn sm ghost', onclick: () => setQuickDate(yesterISO()) }, 'Hier'),
+      ),
     );
     const noteField = h(
       'label',

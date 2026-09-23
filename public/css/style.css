@@ -665,3 +665,12 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .trend { font-size: .72rem; font-weight: 800; }
 .trend.up { color: var(--ok); }
 .trend.down { color: var(--danger); }
+
+/* ---------------------------------------------------------------- fondu de thème */
+
+/* Petit fondu quand on bascule clair/sombre ; .toggle garde en plus son
+   appui rapide (transform), qu'une règle globale écraserait sinon. */
+body, header, nav, section, .card, .tile, .chip, input, select, textarea {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+.toggle { transition: transform .08s ease, background-color .25s ease, color .25s ease, border-color .25s ease; }

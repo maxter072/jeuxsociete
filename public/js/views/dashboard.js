@@ -333,12 +333,26 @@ export function Dashboard(state, refresh) {
     const firstDate = state.sessions.length ? state.sessions.map((s) => s.date).sort()[0] : null;
     const totalMin = state.sessions.reduce((n, s) => n + (state.games.find((g) => g.id === s.gameId)?.durationMin ?? 0), 0);
 
+    // 🔥 Série d'équipe : jours consécutifs avec au moins une partie, à partir
+    // du jour le plus récent joué (l'équipe a bien tenu N jours de suite).
+    const days = [...new Set(state.sessions.map((s) => s.date))].sort().reverse();
+    let streak = 0;
+    if (days.length) {
+      streak = 1;
+      for (let i = 1; i < days.length; i++) {
+        const gap = Math.round((new Date(`${days[i - 1]}T12:00:00`) - new Date(`${days[i]}T12:00:00`)) / 86_400_000);
+        if (gap === 1) streak += 1;
+        else break;
+      }
+    }
+    const streakTxt = streak > 1 ? ` · 🔥 ${streak} jours d'affilée` : '';
+
     const tiles = [
       {
         label: 'Parties au total',
         value: state.sessions.length,
         sub: firstDate
-          ? `${Math.round(totalMin / 60)} h de pause depuis le ${fmtDateShort(firstDate)}`
+          ? `${Math.round(totalMin / 60)} h de pause depuis le ${fmtDateShort(firstDate)}${streakTxt}`
           : 'depuis le début',
       },
       { label: 'Ce mois-ci', value: monthSessions.length, sub: 'parties jouées' },
@@ -379,7 +393,7 @@ export function Dashboard(state, refresh) {
               h('span', { class: 'draw-emj', style: 'width:46px;height:46px;font-size:1.4rem;border-radius:12px' }, g?.emoji ?? '🎲'),
               h('div', { class: 'grow' },
                 h('div', { class: 'title' }, g?.name ?? 'Jeu supprimé'),
-                h('div', { class: 'sub' }, fmtDateWeek(s.date)),
+                h('div', { class: 'sub' }, `${fmtDateWeek(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
                 h('div', { class: 'result-chips' },
                   [...s.results].sort((a, b) => a.rank - b.rank).map((r) => {
                     const p = state.players.find((pl) => pl.id === r.playerId);
