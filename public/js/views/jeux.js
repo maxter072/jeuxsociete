@@ -14,6 +14,11 @@ export function Jeux(state, refresh) {
   let sort = 'name'; // 'name' | 'plays'
   const grid = h('div', { class: 'grid-games' });
 
+  // Filtres : catégorie (puces) + recherche insensible à la casse et aux accents.
+  let cat = ''; // '' = toutes les catégories
+  let q = '';
+  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
   function sortedGames() {
     return [...state.games].sort((a, b) =>
       Number(b.active) - Number(a.active)
@@ -22,9 +27,18 @@ export function Jeux(state, refresh) {
           : a.name.localeCompare(b.name, 'fr')));
   }
 
+  function visibleGames() {
+    const nq = norm(q.trim());
+    return sortedGames().filter((g) =>
+      (!cat || g.category === cat)
+      && (!nq || norm(g.name).includes(nq) || norm(g.category).includes(nq) || norm(g.description).includes(nq)));
+  }
+
   function renderGrid() {
     grid.innerHTML = '';
-    grid.append(...sortedGames().map((g) => gameCard(g)));
+    const list = visibleGames();
+    if (list.length) grid.append(...list.map((g) => gameCard(g)));
+    else grid.append(h('p', { class: 'empty-note' }, 'Aucun jeu ne correspond à ces critères.'));
   }
 
   const btnName = h('button', { class: 'btn sm primary', onclick: () => { if (sort !== 'name') { sort = 'name'; syncSort(); renderGrid(); } } }, '🔤 A→Z');
@@ -35,14 +49,43 @@ export function Jeux(state, refresh) {
   }
   renderGrid();
 
+  const searchI = h('input', {
+    type: 'search',
+    placeholder: '🔍 Rechercher un jeu…',
+    style: 'width:100%;padding:.45rem .7rem;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)',
+    oninput: (e) => { q = e.target.value; renderGrid(); },
+  });
+
+  // Puces de catégorie : celles de la liste de référence, plus toute catégorie
+  // saisie librement dans les fiches (le filtre reste cliquable pour chacune).
+  const cats = [...new Set([...CATEGORIES, ...state.games.map((g) => g.category).filter(Boolean)])]
+    .sort((a, b) => a.localeCompare(b, 'fr'));
+  const catRow = h('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap;margin-bottom:.9rem' },
+    h('span', { class: 'muted small', style: 'font-weight:700' }, 'Catégorie :'),
+    ['', ...cats].map((c) =>
+      h('button', {
+        type: 'button',
+        class: `toggle${c === cat ? ' on' : ''}`,
+        onclick: (ev) => {
+          cat = c;
+          catRow.querySelectorAll('.toggle').forEach((b) => b.classList.remove('on'));
+          ev.currentTarget.classList.add('on');
+          renderGrid();
+        },
+      }, c || 'Toutes'),
+    ),
+  );
+
   return h('div', {},
     h('div', { class: 'spread', style: 'margin-bottom:.9rem' },
       h('h1', {}, `🎲 Les jeux (${state.games.length})`),
       h('button', { class: 'btn primary', onclick: () => openGameModal(null, refresh) }, '➕ Ajouter un jeu'),
     ),
-    h('div', { class: 'row', style: 'gap:.4rem;margin-bottom:.9rem' },
+    h('div', { class: 'row', style: 'gap:.4rem;margin-bottom:.9rem' }, searchI),
+    h('div', { class: 'row', style: 'gap:.4rem;margin-bottom:.9rem;flex-wrap:wrap' },
       h('span', { class: 'muted small' }, 'Trier :'), btnName, btnPlays,
     ),
+    catRow,
     grid,
     h('p', { class: 'muted small', style: 'margin-top:.6rem' },
       'Le tirage n’utilise que les jeux actifs, adaptés aux joueurs cochés sur l’accueil.'),

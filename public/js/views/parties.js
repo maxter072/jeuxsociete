@@ -87,11 +87,14 @@ export function Parties(state, refresh) {
         h('button', {
           class: 'btn sm',
           title: 'Rejouer : même jeu, mêmes joueurs',
+          'aria-label': 'Rejouer cette partie',
           onclick: () => openPartModal(state, refresh, { presetGameId: s.gameId, presetPlayerIds: s.results.map((r) => r.playerId) }),
         }, '♻️'),
-        h('button', { class: 'btn sm', title: 'Modifier', onclick: () => openPartModal(state, refresh, { session: s }) }, '✏️'),
+        h('button', { class: 'btn sm', title: 'Modifier', 'aria-label': 'Modifier cette partie', onclick: () => openPartModal(state, refresh, { session: s }) }, '✏️'),
         h('button', {
           class: 'btn sm danger',
+          title: 'Supprimer',
+          'aria-label': 'Supprimer cette partie',
           onclick: async () => {
             if (await confirmDialog('Supprimer la partie', `Supprimer la partie « ${g?.name ?? '?'} » du ${fmtDate(s.date)} ? Les points seront retirés des classements.`)) {
               try { await api.deleteSession(s.id); toast('Partie supprimée'); await refresh(); }

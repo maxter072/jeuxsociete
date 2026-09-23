@@ -6,6 +6,7 @@ import { h, toast, confetti, fmtDateShort, medal, resultIcon, fmtPts, openModal,
 import { standings, sessionsInRange, monthRange, yearRange, weekRange, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
+import { openGameModal } from './jeux.js';
 
 export function Dashboard(state, refresh) {
   const now = new Date();
@@ -29,11 +30,13 @@ export function Dashboard(state, refresh) {
     const drawn = state.draw && state.draw.date === todayISOstr ? state.games.find((g) => g.id === state.draw.gameId) : null;
 
     if (!drawn) {
+      const n = getPresents(state).size;
+      const pl = n > 1 ? 's' : '';
       return h('section', { class: 'card hero-draw' },
         h('div', { class: 'draw-emj floaty' }, '🎲'),
         h('div', { class: 'draw-info' },
           h('h1', {}, 'Quel jeu aujourd’hui ?'),
-          h('p', { class: 'muted' }, 'Tirage parmi les jeux actifs, adaptés aux joueurs présents.'),
+          h('p', { class: 'muted' }, `Tirage parmi les jeux actifs, adaptés aux ${n} joueur${pl} présent${pl}.`),
         ),
         h('div', { class: 'draw-actions' },
           h('button', { class: 'btn gold big', onclick: startDraw }, '🎲 Tirer le jeu du jour'),
@@ -47,7 +50,7 @@ export function Dashboard(state, refresh) {
       h('div', { class: 'draw-emj' }, drawn.emoji),
       h('div', { class: 'draw-info' },
         h('p', { class: 'chip gold', style: 'width:fit-content' }, '🎯 Jeu du jour'),
-        h('div', { class: 'game-name' }, drawn.name),
+        h('div', { class: 'game-name clickable', title: 'Voir la fiche du jeu', onclick: () => openGameModal(drawn, refresh) }, drawn.name),
         h('div', { class: 'row', style: 'gap:.35rem' },
           h('span', { class: 'chip teal' }, `⏱ ${drawn.durationMin} min`),
           h('span', { class: 'chip' }, `👥 ${drawn.minPlayers}–${drawn.maxPlayers}`),
@@ -206,6 +209,10 @@ export function Dashboard(state, refresh) {
       ),
       h('div', { class: 'row', style: 'gap:.4rem' },
         state.players.filter((p) => p.active).map(chipFor)),
+      h('div', { class: 'row', style: 'gap:.5rem;margin-top:.6rem' },
+        h('button', { type: 'button', class: 'btn sm', onclick: (e) => pickStarter(e.currentTarget) }, '👤 Qui commence ?'),
+        h('span', { class: 'muted small' }, 'tiré au hasard parmi les présents'),
+      ),
     );
 
     function chipFor(p) {
@@ -219,6 +226,36 @@ export function Dashboard(state, refresh) {
           rerender();
         },
       }, h('span', {}, p.emoji), p.name);
+    }
+
+    /** 🎲 Tire au sort celui qui commence : les noms défilent sur le bouton,
+     *  ralentissent, puis le chanceux est désigné (confettis compris). */
+    function pickStarter(btn) {
+      if (btn.dataset.busy) return;
+      const players = [...getPresents(state)]
+        .map((id) => state.players.find((p) => p.id === id))
+        .filter(Boolean);
+      if (players.length < 2) {
+        toast('Cochez au moins deux joueurs présents, puis retente ta chance.', 'warn');
+        return;
+      }
+      btn.dataset.busy = '1';
+      const delays = [70, 70, 80, 90, 100, 120, 150, 190, 240, 320];
+      let i = 0;
+      (function tick() {
+        if (i < delays.length) {
+          const p = players[Math.floor(Math.random() * players.length)];
+          btn.textContent = `${p.emoji} ${p.name} ?`;
+          setTimeout(tick, delays[i]);
+          i += 1;
+        } else {
+          const chosen = players[Math.floor(Math.random() * players.length)];
+          btn.textContent = '👤 Qui commence ?';
+          delete btn.dataset.busy;
+          confetti();
+          toast(`${chosen.emoji} ${chosen.name} commence ! 🎲`);
+        }
+      })();
     }
   }
 
@@ -351,12 +388,14 @@ export function Dashboard(state, refresh) {
                 h('button', {
                   class: 'btn sm',
                   title: 'Rejouer : même jeu, mêmes joueurs',
+                  'aria-label': 'Rejouer cette partie',
                   onclick: () => openPartModal(state, refresh, { presetGameId: s.gameId, presetPlayerIds: s.results.map((r) => r.playerId) }),
                 }, '♻️'),
-                h('button', { class: 'btn sm', title: 'Modifier', onclick: () => openPartModal(state, refresh, { session: s }) }, '✏️'),
+                h('button', { class: 'btn sm', title: 'Modifier', 'aria-label': 'Modifier cette partie', onclick: () => openPartModal(state, refresh, { session: s }) }, '✏️'),
                 h('button', {
                   class: 'btn sm danger',
                   title: 'Supprimer',
+                  'aria-label': 'Supprimer cette partie',
                   onclick: async () => {
                     if (await confirmDialog('Supprimer la partie', `Supprimer la partie « ${g?.name ?? '?'} » du ${fmtDateShort(s.date)} ?`)) {
                       try { await api.deleteSession(s.id); toast('Partie supprimée'); await refresh(); }

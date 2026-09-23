@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { store, ApiError } from './lib/store.js';
 
@@ -235,18 +236,46 @@ function serveStatic(req, res, pathname) {
 
   let target = file;
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
+    // Une URL avec extension (script, image…) qui n'existe pas est une vraie
+    // 404 ; le repli SPA ne vaut que pour les routes de navigation.
+    if (path.extname(rel)) return json(res, 404, { error: 'Fichier introuvable' });
     target = path.join(PUBLIC_DIR, 'index.html'); // repli SPA
   }
+
   const ext = path.extname(target).toLowerCase();
-  res.writeHead(200, {
-    'Content-Type': MIME[ext] || 'application/octet-stream',
+  const stat = fs.statSync(target);
+  // ETag faible : le navigateur revalide à chaque visite (no-cache) mais ne
+  // retélécharge le fichier que s'il a réellement changé (réponse 304).
+  const etag = `W/"${stat.size.toString(36)}-${Math.round(stat.mtimeMs).toString(36)}"`;
+  if (req.headers['if-none-match'] === etag) {
+    res.writeHead(304, { ETag: etag, 'Cache-Control': 'no-cache', ...SEC_HEADERS });
+    return res.end();
+  }
+
+  const type = MIME[ext] || 'application/octet-stream';
+  // Gzip : le JS/CSS domine le poids de la page, on divise le transfert par 3-4.
+  const compressible = type.startsWith('text/') || type === 'application/json';
+  const gz = compressible && String(req.headers['accept-encoding'] || '').includes('gzip');
+
+  const headers = {
+    'Content-Type': type,
     'Cache-Control': 'no-cache',
+    ETag: etag,
+    Vary: 'Accept-Encoding',
     ...SEC_HEADERS,
-  });
+  };
+  res.writeHead(200, gz ? { ...headers, 'Content-Encoding': 'gzip' } : headers);
   if (req.method === 'HEAD') return res.end();
-  const stream = fs.createReadStream(target);
-  stream.on('error', () => res.destroy()); // fichier disparu entre-temps : on coupe net
-  stream.pipe(res);
+
+  const raw = fs.createReadStream(target);
+  raw.on('error', () => res.destroy()); // fichier disparu entre-temps : on coupe net
+  if (gz) {
+    const packed = raw.pipe(zlib.createGzip());
+    packed.on('error', () => res.destroy());
+    packed.pipe(res);
+  } else {
+    raw.pipe(res);
+  }
 }
 
 // ------------------------------------------------------------------ serveur
