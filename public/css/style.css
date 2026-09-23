@@ -258,6 +258,13 @@ main {
   border-color: var(--primary);
   color: var(--primary);
 }
+/* même gabarit que les puces présents, mais en or : « Qui commence ? » */
+.toggle.starter {
+  background: var(--gold-soft);
+  border-color: color-mix(in srgb, var(--gold) 60%, var(--line));
+  color: var(--gold);
+}
+.toggle.starter:active { transform: scale(.96); }
 .toggle .badge-rank {
   display: inline-grid;
   place-items: center;

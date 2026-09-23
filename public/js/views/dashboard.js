@@ -210,7 +210,7 @@ export function Dashboard(state, refresh) {
       h('div', { class: 'row', style: 'gap:.4rem' },
         state.players.filter((p) => p.active).map(chipFor)),
       h('div', { class: 'row', style: 'gap:.5rem;margin-top:.6rem' },
-        h('button', { type: 'button', class: 'btn sm', onclick: (e) => pickStarter(e.currentTarget) }, '👤 Qui commence ?'),
+        h('button', { type: 'button', class: 'toggle starter', onclick: (e) => pickStarter(e.currentTarget) }, '👤 Qui commence ?'),
         h('span', { class: 'muted small' }, 'tiré au hasard parmi les présents'),
       ),
     );
