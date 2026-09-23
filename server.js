@@ -131,9 +131,16 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 
 function clientIp(req) {
   if (TRUST_PROXY) {
-    const fwd = String(req.headers['x-real-ip'] || '').trim()
-      || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-    if (fwd) return fwd;
+    // On ne lit les en-têtes du proxy que si le pair direct EST le proxy
+    // (loopback, comme nginx sur la même machine) : sinon un client joignant
+    // directement le port pourrait forger X-Real-IP à chaque requête et
+    // contourner la limite de débit / polluer le journal.
+    const peer = req.socket.remoteAddress;
+    if (peer === '127.0.0.1' || peer === '::1' || peer === '::ffff:127.0.0.1') {
+      const fwd = String(req.headers['x-real-ip'] || '').trim()
+        || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+      if (fwd) return fwd;
+    }
   }
   return req.socket.remoteAddress || '?';
 }
@@ -211,6 +218,7 @@ async function handleApi(req, res, url) {
   }
 
   if (pathname === '/api/export' && method === 'GET') {
+    rateLimitRead(req); // comme /api/state : sérialise tout l'état, à protéger du flood
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Disposition': 'attachment; filename="pause-jeux-sauvegarde.json"',
