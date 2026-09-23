@@ -157,30 +157,35 @@ function checkHost(req) {
   if (!ok) throw new ApiError(421, 'Hôte non autorisé');
 }
 
-// Mini limite de débit par IP sur les mutations (zéro dépendance) : borne
-// l'usure disque (.bak + réécriture à chaque requête) et les boucles abusives.
+// Mini limite de débit par IP (zéro dépendance) : mutations d'une part,
+// lectures lourdes (/api/state sérialise tout l'état) d'autre part — deux
+// plafonds distincts, fenêtre commune.
 const RATE_WINDOW = 10_000; // ms
 const RATE_MAX = 60; // mutations par fenêtre et par IP
+const RATE_GET_MAX = 300; // lectures d'état par fenêtre et par IP (large)
 const buckets = new Map();
+const getBuckets = new Map();
 
-function rateLimit(req) {
-  const ip = clientIp(req);
+function touch(map, ip, max) {
   const now = Date.now();
-  if (buckets.size > 5000) {
+  if (map.size > 5000) {
     // Garde-fou mémoire : on ne vide pas tout (les clients légitimes gardent
     // leur compteur), on ne retire que les fenêtres expirées.
-    for (const [k, b] of buckets) {
-      if (now - b.t > RATE_WINDOW) buckets.delete(k);
+    for (const [k, b] of map) {
+      if (now - b.t > RATE_WINDOW) map.delete(k);
     }
   }
-  const b = buckets.get(ip);
+  const b = map.get(ip);
   if (!b || now - b.t > RATE_WINDOW) {
-    buckets.set(ip, { n: 1, t: now });
+    map.set(ip, { n: 1, t: now });
     return;
   }
   b.n += 1;
-  if (b.n > RATE_MAX) throw new ApiError(429, 'Trop de requêtes — réessayez dans un instant.');
+  if (b.n > max) throw new ApiError(429, 'Trop de requêtes — réessayez dans un instant.');
 }
+
+const rateLimit = (req) => touch(buckets, clientIp(req), RATE_MAX);
+const rateLimitRead = (req) => touch(getBuckets, clientIp(req), RATE_GET_MAX);
 
 async function handleApi(req, res, url) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -200,7 +205,10 @@ async function handleApi(req, res, url) {
     return json(res, 200, { ok: true, uptime: Math.round(process.uptime()) });
   }
 
-  if (pathname === '/api/state' && method === 'GET') return jsonGz(req, res, store.publicState());
+  if (pathname === '/api/state' && method === 'GET') {
+    rateLimitRead(req);
+    return jsonGz(req, res, store.publicState());
+  }
 
   if (pathname === '/api/export' && method === 'GET') {
     res.writeHead(200, {
@@ -288,16 +296,30 @@ function serveStatic(req, res, pathname) {
   res.writeHead(200, gz ? { ...headers, 'Content-Encoding': 'gzip' } : headers);
   if (req.method === 'HEAD') return res.end();
 
+  if (gz) {
+    // Cache du buffer gzippé (clé fichier + mtime) : on ne compresse qu'une
+    // fois par version du fichier, pas à chaque requête.
+    const key = `${target}|${Math.round(stat.mtimeMs)}`;
+    let packed = gzCache.get(key);
+    if (!packed) {
+      try {
+        packed = zlib.gzipSync(fs.readFileSync(target));
+      } catch {
+        return res.destroy(); // fichier disparu entre-temps
+      }
+      if (gzCache.size > 200) gzCache.clear();
+      gzCache.set(key, packed);
+    }
+    return res.end(packed);
+  }
+
   const raw = fs.createReadStream(target);
   raw.on('error', () => res.destroy()); // fichier disparu entre-temps : on coupe net
-  if (gz) {
-    const packed = raw.pipe(zlib.createGzip());
-    packed.on('error', () => res.destroy());
-    packed.pipe(res);
-  } else {
-    raw.pipe(res);
-  }
+  raw.pipe(res);
 }
+
+// Buffers gzip des fichiers statiques, remplis au fil des requêtes.
+const gzCache = new Map();
 
 // ------------------------------------------------------------------ serveur
 

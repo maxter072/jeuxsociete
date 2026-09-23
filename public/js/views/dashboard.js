@@ -13,6 +13,20 @@ export function Dashboard(state, refresh) {
   const todayISOstr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   const view = h('div', {});
+
+  // Périodes et classements partagés : calculés une seule fois par rendu
+  // (buildTops et buildStats s'en servent tous les deux).
+  const week = weekRange(now);
+  const month = monthRange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  const year = yearRange(now.getFullYear());
+  const monthSessions = sessionsInRange(state, month.from, month.to);
+  const rowsCache = new Map();
+  const rowsFor = (from, to) => {
+    const key = `${from}~${to}`;
+    if (!rowsCache.has(key)) rowsCache.set(key, standings(state, sessionsInRange(state, from, to)));
+    return rowsCache.get(key);
+  };
+
   view.append(buildHero());
   view.append(buildPresents());
   view.append(buildTops());
@@ -297,12 +311,9 @@ export function Dashboard(state, refresh) {
   }
 
   function buildTops() {
-    const week = weekRange(now);
-    const month = monthRange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    const year = yearRange(now.getFullYear());
-    const weekRows = standings(state, sessionsInRange(state, week.from, week.to));
-    const monthRows = standings(state, sessionsInRange(state, month.from, month.to));
-    const yearRows = standings(state, sessionsInRange(state, year.from, year.to));
+    const weekRows = rowsFor(week.from, week.to);
+    const monthRows = rowsFor(month.from, month.to);
+    const yearRows = rowsFor(year.from, year.to);
     return h('div', { class: 'grid3' },
       podium('⚡ Top 3 de la semaine', weekRows, 'semaine →', '#/classements?mode=week'),
       podium('🏆 Top 3 du mois', monthRows, 'mois →', '#/classements?mode=month'),
@@ -313,8 +324,6 @@ export function Dashboard(state, refresh) {
   // ------------------------------------------------ statistiques
 
   function buildStats() {
-    const month = monthRange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    const monthSessions = sessionsInRange(state, month.from, month.to);
     const counts = gamePlayCounts(state);
     const totals = playerTotals(state);
 
@@ -327,7 +336,7 @@ export function Dashboard(state, refresh) {
       }
     }
 
-    const monthTop = standings(state, monthSessions)[0];
+    const monthTop = rowsFor(month.from, month.to)[0];
 
     // Compteur global : première partie enregistrée et temps de jeu cumulé.
     const firstDate = state.sessions.length ? state.sessions.map((s) => s.date).sort()[0] : null;

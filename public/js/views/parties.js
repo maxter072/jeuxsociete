@@ -9,12 +9,15 @@ import { openGameStats } from '../game-modal.js';
 export function Parties(state, refresh) {
   const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
   let q = '';
+  // Pagination : le DOM reste léger même avec des milliers de parties.
+  const PAGE = 200;
+  let shown = PAGE;
 
   const input = h('input', {
     type: 'search',
     placeholder: '🔍 Rechercher : jeu, joueur, note…',
     style: 'width:100%;border:1.5px solid var(--line);border-radius:9px;padding:.45rem .7rem;background:var(--surface);color:var(--ink);margin-bottom:.8rem',
-    oninput: (e) => { q = e.target.value; renderList(); },
+    oninput: (e) => { q = e.target.value; shown = PAGE; renderList(); },
   });
   const listBox = h('div', {});
   const view = h('div', {},
@@ -50,7 +53,16 @@ export function Parties(state, refresh) {
             `${filtered.length} partie${filtered.length > 1 ? 's' : ''} trouvée${filtered.length > 1 ? 's' : ''}`)
         : null,
       filtered.length
-        ? h('section', { class: 'card' }, filtered.map((s) => sessionRow(s)))
+        ? h('section', { class: 'card' },
+            filtered.slice(0, shown).map((s) => sessionRow(s)),
+            filtered.length > shown
+              ? h('button', {
+                  class: 'btn ghost',
+                  style: 'width:100%;margin-top:.6rem',
+                  onclick: () => { shown += PAGE; renderList(); },
+                }, `⬇️ Afficher plus (${filtered.length - shown} restantes)`)
+              : null,
+          )
         : h('p', { class: 'empty-note card' }, q.trim()
             ? 'Aucune partie ne correspond à cette recherche.'
             : 'Aucune partie enregistrée. Cliquez sur « Enregistrer une partie » après votre prochaine pause !'),
