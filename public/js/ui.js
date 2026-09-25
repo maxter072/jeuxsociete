@@ -22,6 +22,18 @@ function append(el, children) {
   }
 }
 
+/** Recherche insensible à la casse et aux accents (« Épées » ≈ « epes »). */
+export function norm(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+/** Retarde l'appel 150 ms après la dernière frappe : les recherches ne
+ *  re-rendent plus la liste à chaque touche. */
+export function debounce(fn, ms = 150) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
 /** Date du jour en heure locale, au format YYYY-MM-DD. */
 export function todayISO() {
   const d = new Date();

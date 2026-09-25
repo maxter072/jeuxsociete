@@ -188,6 +188,42 @@ export function eligibleGames(state, presentCount) {
   );
 }
 
+/**
+ * Records toutes périodes confondues : plus longue série de victoires,
+ * plus longue série de défaites (même définition que standings) et plus gros
+ * score en une partie. Ex æquo : tout le monde est listé ; rien sous 2 d'affilée.
+ */
+export function teamRecords(state) {
+  // Parties de chaque joueur, de la plus récente à la plus ancienne.
+  const played = new Map();
+  for (const s of [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))) {
+    for (const r of s.results) {
+      if (!played.has(r.playerId)) played.set(r.playerId, []);
+      played.get(r.playerId).push({ s, r });
+    }
+  }
+  const runs = (lost) => {
+    const per = state.players.map((p) => {
+      let run = 0, best = 0;
+      for (const { s, r } of played.get(p.id) || []) {
+        const hasWinner = s.results.some((x) => x.rank === 1);
+        const hit = lost ? (hasWinner ? r.rank !== 1 : r.rank > 2) : r.rank === 1;
+        if (hit) { run++; if (run > best) best = run; } else run = 0;
+      }
+      return { p, n: best };
+    });
+    const max = Math.max(0, ...per.map((x) => x.n));
+    return max >= 2 ? per.filter((x) => x.n === max) : [];
+  };
+  let big = null;
+  for (const s of state.sessions) {
+    for (const r of s.results) {
+      if (!big || r.points > big.pts) big = { playerId: r.playerId, pts: r.points, gameId: s.gameId, date: s.date };
+    }
+  }
+  return { winStreaks: runs(false), lossStreaks: runs(true), big };
+}
+
 // ------------------------------------------------------------------ présents (mémoire locale)
 
 const PRESENTS_KEY = 'pj_presents';

@@ -1,7 +1,7 @@
 // Vue « Jeux » : grille de fiches, ajout / modification / (dés)activation / suppression.
 
 import { api } from '../api.js';
-import { h, toast, openModal, confirmDialog } from '../ui.js';
+import { h, toast, openModal, confirmDialog, norm, debounce } from '../ui.js';
 
 const EMOJIS = ['🎲', '🃏', '🏰', '🕵️', '💌', '🚢', '🥸', '🏴‍☠️', '🪞', '🎭', '🐻', '🧩', '♟️', '🧭', '⚔️', '🔮'];
 const CATEGORIES = ['Ambiance', 'Cartes', 'Coopération', 'Déduction', 'Dés', 'Stratégie', 'Réflexion', 'Lettres'];
@@ -17,7 +17,6 @@ export function Jeux(state, refresh) {
   // Filtres : catégorie (puces) + recherche insensible à la casse et aux accents.
   let cat = ''; // '' = toutes les catégories
   let q = '';
-  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
   function sortedGames() {
     return [...state.games].sort((a, b) =>
@@ -48,12 +47,13 @@ export function Jeux(state, refresh) {
     btnPlays.className = `btn sm ${sort === 'plays' ? 'primary' : 'ghost'}`;
   }
   renderGrid();
+  const runSearch = debounce(renderGrid);
 
   const searchI = h('input', {
     type: 'search',
     placeholder: '🔍 Rechercher un jeu…',
     style: 'width:100%;padding:.45rem .7rem;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)',
-    oninput: (e) => { q = e.target.value; renderGrid(); },
+    oninput: (e) => { q = e.target.value; runSearch(); },
   });
 
   // Puces de catégorie : celles de la liste de référence, plus toute catégorie

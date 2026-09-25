@@ -4,7 +4,7 @@
 
 import { h, medal, monthLabel, openModal, confirmDialog, toast, fmtDateShort } from '../ui.js';
 import { api } from '../api.js';
-import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth, winStreak, monthTrophies } from '../stats.js';
+import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, shiftMonth, winStreak, monthTrophies, teamRecords } from '../stats.js';
 import { openPlayerStats } from '../player-modal.js';
 import { openGameStats } from '../game-modal.js';
 import { openPodiumImage } from '../podium-image.js';
@@ -16,6 +16,9 @@ export function Classements(state, refresh) {
   let weekRef = new Date(); // date de référence de la semaine affichée
 
   const wrap = h('div', {});
+  // Index par identifiant pour les recherches de joueur/jeu dans les tableaux.
+  const playerById = new Map(state.players.map((p) => [p.id, p]));
+  const gameById = new Map(state.games.map((g) => [g.id, g]));
   render();
   return wrap;
 
@@ -46,6 +49,8 @@ export function Classements(state, refresh) {
         buildBoard(),
       );
     }
+    const records = buildRecords();
+    if (records) wrap.append(records);
   }
 
   // ------------------------------------------------ réinitialisation
@@ -327,6 +332,37 @@ export function Classements(state, refresh) {
     return card;
   }
 
+  /** Records toutes périodes : séries de victoires/défaites et plus gros
+   *  score en une partie. Ex æquo : tout le monde est affiché. */
+  function buildRecords() {
+    const rec = teamRecords(state);
+    const chips = [];
+    const chipFor = (x, emoji, label, unit) => h('span', {
+      class: 'chip clickable',
+      title: `Voir la fiche de ${x.p.name}`,
+      onclick: () => openPlayerStats(state, x.p.id),
+    }, `${emoji} ${label} : ${x.p.emoji} ${x.p.name} (${x.n} ${unit})`);
+    for (const x of rec.winStreaks) chips.push(chipFor(x, '🔥', 'Série de victoires', `victoire${x.n > 1 ? 's' : ''} d'affilée`));
+    for (const x of rec.lossStreaks) chips.push(chipFor(x, '💀', 'Série de défaites', `défaite${x.n > 1 ? 's' : ''} d'affilée`));
+    if (rec.big) {
+      const p = playerById.get(rec.big.playerId);
+      const g = gameById.get(rec.big.gameId);
+      if (p) {
+        chips.push(h('span', {
+          class: 'chip clickable',
+          title: p ? `Voir la fiche de ${p.name}` : undefined,
+          onclick: () => openPlayerStats(state, p.id),
+        }, `💪 Plus gros score : ${p.emoji} ${p.name} (+${rec.big.pts} pt${rec.big.pts > 1 ? 's' : ''}${g ? `, ${g.name}` : ''}, ${fmtDateShort(rec.big.date)})`));
+      }
+    }
+    if (!chips.length) return null;
+    return h('section', { class: 'card' },
+      h('h2', {}, '🏅 Records de l’équipe'),
+      h('p', { class: 'muted small', style: 'margin-top:-.4rem' }, 'Toutes périodes confondues.'),
+      h('div', { class: 'row', style: 'gap:.4rem;flex-wrap:wrap' }, chips),
+    );
+  }
+
   /** Classement des jeux : les plus joués, meilleur joueur de chaque jeu, dernière sortie. */
   function buildGameBoard() {
     const card = h('section', { class: 'card' });
@@ -353,7 +389,7 @@ export function Classements(state, refresh) {
     }
 
     const rows = [...stats.entries()]
-      .map(([gid, st]) => ({ game: state.games.find((g) => g.id === gid), st }))
+      .map(([gid, st]) => ({ game: gameById.get(gid), st }))
       .filter((r) => r.game)
       .sort((a, b) => b.st.plays - a.st.plays || a.game.name.localeCompare(b.game.name, 'fr'));
 
@@ -365,7 +401,7 @@ export function Classements(state, refresh) {
         if (!best || w > best.w || (w === best.w && pts > best.pts)) best = { pid, w };
       }
       if (!best) return null;
-      const p = state.players.find((pl) => pl.id === best.pid);
+      const p = playerById.get(best.pid);
       return p ? { p, w: best.w } : null;
     };
 

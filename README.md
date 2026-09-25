@@ -64,9 +64,11 @@ deploy/              Exemples systemd + Nginx pour la production
 ## 🎮 Fonctionnement
 
 - **Accueil** : « Tirer le jeu du jour » (animation + confettis) ou choix manuel.
-  Le tirage ne propose que les jeux **actifs** adaptés aux **présents** cochés.
+  Le tirage ne propose que les jeux **actifs** adaptés aux **présents** cochés
+  (re-cochables en un clic via « ⏪ Dernier groupe »).
   Les gagnants de la journée gardent leur place jusqu'au lendemain.
-  Une tuile de stats affiche le total de parties et le **temps de pause cumulé** depuis la première.
+  Une tuile de stats affiche le total de parties et le **temps de pause cumulé** depuis la première,
+  et un mini-graphe montre l'activité des 8 dernières semaines.
 - **Enregistrer une partie** : cocher les présents → toucher les joueurs dans l'ordre
   d'arrivée → Enregistrer. Modes spéciaux : **⚔️ Plusieurs gagnants** (jeux à factions
   : pirates, mutins, loups-garous…), **🤝 Coop** (tout le monde gagne) et
@@ -84,7 +86,8 @@ deploy/              Exemples systemd + Nginx pour la production
   et **par jeu** (les plus joués, meilleur joueur — touchez un jeu pour son
   classement détaillé). Un compteur annonce le nombre de parties de la période.
   Une 🔥 flamme marque les séries de victoires en cours (2 ou plus — survolez-la
-  pour le détail). En fin de mois : **trophées du mois** — ⏰ Assidu (le plus de parties),
+  pour le détail). Un encart 🏅 **Records** récapitule les plus longues séries de
+  victoires et de défaites et le plus gros score en une partie. En fin de mois : **trophées du mois** — ⏰ Assidu (le plus de parties),
   🧭 Explorateur (le plus de jeux différents), 💀 Zagred du pilipili (le plus de défaites) ;
   en cas d'égalité, pas de trophée. Une partie sans gagnant (pilipili)
   ne distribue que les points de participation.

@@ -3,7 +3,7 @@
 
 import { api } from '../api.js';
 import { h, toast, confetti, fmtDateShort, fmtDateWeek, medal, resultIcon, fmtPts, openModal, confirmDialog } from '../ui.js';
-import { standings, sessionsInRange, monthRange, yearRange, weekRange, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
+import { standings, sessionsInRange, monthRange, yearRange, weekRange, shiftDays, isoWeekNumber, eligibleGames, gamePlayCounts, playerTotals, getPresents, setPresents } from '../stats.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
 import { openGameModal } from './jeux.js';
@@ -26,11 +26,21 @@ export function Dashboard(state, refresh) {
     if (!rowsCache.has(key)) rowsCache.set(key, standings(state, sessionsInRange(state, from, to)));
     return rowsCache.get(key);
   };
+  // Index par identifiant : les recherches de joueur/jeu ne parcourent plus
+  // les tableaux à chaque puce ou ligne (reconstruits à chaque rendu).
+  const playerById = new Map(state.players.map((p) => [p.id, p]));
+  const gameById = new Map(state.games.map((g) => [g.id, g]));
+  // Groupe de la dernière partie enregistrée : re-cochable en un clic.
+  const lastGroup = (() => {
+    const last = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))[0];
+    return last ? last.results.map((r) => r.playerId).filter((id) => playerById.get(id)?.active) : [];
+  })();
 
   view.append(buildHero());
   view.append(buildPresents());
   view.append(buildTops());
   view.append(buildStats());
+  view.append(buildActivity());
   view.append(buildRecent());
   return view;
 
@@ -41,7 +51,7 @@ export function Dashboard(state, refresh) {
   // ------------------------------------------------ jeu du jour
 
   function buildHero() {
-    const drawn = state.draw && state.draw.date === todayISOstr ? state.games.find((g) => g.id === state.draw.gameId) : null;
+    const drawn = state.draw && state.draw.date === todayISOstr ? gameById.get(state.draw.gameId) : null;
 
     if (!drawn) {
       const n = getPresents(state).size;
@@ -220,6 +230,13 @@ export function Dashboard(state, refresh) {
       h('div', { class: 'spread' },
         h('h2', {}, `👥 Joueurs présents (${presents.size})`),
         h('div', { class: 'row', style: 'gap:.7rem' },
+          lastGroup.length ? h('button', {
+            type: 'button',
+            class: 'small',
+            style: 'background:none;border:none;padding:0;cursor:pointer;color:var(--primary);font-weight:700;font-family:inherit',
+            title: 'Re-cocher les joueurs de la dernière partie enregistrée',
+            onclick: () => { setPresents(new Set(lastGroup)); rerender(); },
+          }, '⏪ Dernier groupe') : null,
           presents.size ? h('button', {
             type: 'button',
             class: 'small',
@@ -255,7 +272,7 @@ export function Dashboard(state, refresh) {
     function pickStarter(btn) {
       if (btn.dataset.busy) return;
       const players = [...getPresents(state)]
-        .map((id) => state.players.find((p) => p.id === id))
+        .map((id) => playerById.get(id))
         .filter(Boolean);
       if (players.length < 2) {
         toast('Cochez au moins deux joueurs présents, puis retente ta chance.', 'warn');
@@ -275,6 +292,7 @@ export function Dashboard(state, refresh) {
           btn.textContent = '👤 Qui commence ?';
           delete btn.dataset.busy;
           confetti();
+          if (navigator.vibrate) navigator.vibrate(80); // petit rappel tactile sur mobile
           toast(`${chosen.emoji} ${chosen.name} commence ! 🎲`);
         }
       })();
@@ -331,7 +349,7 @@ export function Dashboard(state, refresh) {
     let favCount = 0;
     for (const [gid, n] of counts) {
       if (n > favCount) {
-        const g = state.games.find((x) => x.id === gid);
+        const g = gameById.get(gid);
         if (g) { favGame = g; favCount = n; }
       }
     }
@@ -340,7 +358,7 @@ export function Dashboard(state, refresh) {
 
     // Compteur global : première partie enregistrée et temps de jeu cumulé.
     const firstDate = state.sessions.length ? state.sessions.map((s) => s.date).sort()[0] : null;
-    const totalMin = state.sessions.reduce((n, s) => n + (state.games.find((g) => g.id === s.gameId)?.durationMin ?? 0), 0);
+    const totalMin = state.sessions.reduce((n, s) => n + (gameById.get(s.gameId)?.durationMin ?? 0), 0);
 
     // 🔥 Série d'équipe : jours consécutifs avec au moins une partie, à partir
     // du jour le plus récent joué (l'équipe a bien tenu N jours de suite).
@@ -386,6 +404,38 @@ export function Dashboard(state, refresh) {
     );
   }
 
+  // ------------------------------------------------ activité des 8 dernières semaines
+
+  /** Mini-histogramme CSS : parties par semaine, la semaine courante à droite. */
+  function buildActivity() {
+    const WEEKS = 8;
+    const weeks = [];
+    for (let i = WEEKS - 1; i >= 0; i--) {
+      const ref = shiftDays(now, -7 * i);
+      weeks.push({ range: weekRange(ref), num: isoWeekNumber(ref) });
+    }
+    const counts = weeks.map((w) => state.sessions.filter((s) => s.date >= w.range.from && s.date <= w.range.to).length);
+    const max = Math.max(1, ...counts);
+    return h('section', { class: 'card tight' },
+      h('div', { class: 'spread' },
+        h('h2', {}, '📊 Activité'),
+        h('span', { class: 'muted small' }, 'parties des 8 dernières semaines'),
+      ),
+      h('div', { class: 'act-chart' },
+        weeks.map((w, i) => h('div', {
+          class: 'act-col',
+          title: `Semaine ${w.num} : ${counts[i]} partie${counts[i] > 1 ? 's' : ''}`,
+        },
+          h('span', { class: 'act-n' }, counts[i] || ''),
+          h('div', { class: 'act-plot' },
+            h('div', { class: `act-bar${counts[i] ? '' : ' empty'}`, style: `height:${counts[i] ? Math.max(12, Math.round((counts[i] / max) * 100)) : 4}%` }),
+          ),
+          h('span', { class: 'act-w' }, `S${w.num}`),
+        )),
+      ),
+    );
+  }
+
   // ------------------------------------------------ dernières parties
 
   function buildRecent() {
@@ -397,7 +447,7 @@ export function Dashboard(state, refresh) {
       ),
       recent.length
         ? h('div', {}, recent.map((s) => {
-            const g = state.games.find((x) => x.id === s.gameId);
+            const g = gameById.get(s.gameId);
             return h('div', { class: 'list-item' },
               h('span', { class: 'draw-emj', style: 'width:46px;height:46px;font-size:1.4rem;border-radius:12px' }, g?.emoji ?? '🎲'),
               h('div', { class: 'grow' },
@@ -405,7 +455,7 @@ export function Dashboard(state, refresh) {
                 h('div', { class: 'sub' }, `${fmtDateWeek(s.date)} · ${s.results.length} joueur${s.results.length > 1 ? 's' : ''}`),
                 h('div', { class: 'result-chips' },
                   [...s.results].sort((a, b) => a.rank - b.rank).map((r) => {
-                    const p = state.players.find((pl) => pl.id === r.playerId);
+                    const p = playerById.get(r.playerId);
                     if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${resultIcon(s, r.rank)} ? ${fmtPts(r.points)}`);
                     return h('span', {
                       class: `rc r${r.rank <= 3 ? r.rank : ''} clickable`,

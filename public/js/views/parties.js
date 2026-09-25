@@ -1,23 +1,27 @@
 // Vue « Parties » : historique complet des sessions, édition et suppression.
 
 import { api } from '../api.js';
-import { h, toast, confirmDialog, fmtDate, fmtDateWeek, resultIcon, fmtPts } from '../ui.js';
+import { h, toast, confirmDialog, fmtDate, fmtDateWeek, resultIcon, fmtPts, norm, debounce } from '../ui.js';
 import { openPartModal } from '../part-modal.js';
 import { openPlayerStats } from '../player-modal.js';
 import { openGameStats } from '../game-modal.js';
 
 export function Parties(state, refresh) {
   const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  // Index par identifiant : plus de parcours des tableaux à chaque ligne.
+  const playerById = new Map(state.players.map((p) => [p.id, p]));
+  const gameById = new Map(state.games.map((g) => [g.id, g]));
   let q = '';
   // Pagination : le DOM reste léger même avec des milliers de parties.
   const PAGE = 200;
   let shown = PAGE;
+  const runSearch = debounce(() => { shown = PAGE; renderList(); });
 
   const input = h('input', {
     type: 'search',
     placeholder: '🔍 Rechercher : jeu, joueur, note…',
     style: 'width:100%;border:1.5px solid var(--line);border-radius:9px;padding:.45rem .7rem;background:var(--surface);color:var(--ink);margin-bottom:.8rem',
-    oninput: (e) => { q = e.target.value; shown = PAGE; renderList(); },
+    oninput: (e) => { q = e.target.value; runSearch(); },
   });
   const listBox = h('div', {});
   const view = h('div', {},
@@ -31,17 +35,13 @@ export function Parties(state, refresh) {
   renderList();
   return view;
 
-  /** Recherche insensible à la casse et aux accents. */
-  function norm(s) {
-    return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  }
-
+  /** Correspond à la recherche : jeu, note ou joueur (insensible aux accents). */
   function matches(s) {
     if (!q.trim()) return true;
     const needle = norm(q.trim());
-    const g = state.games.find((x) => x.id === s.gameId);
+    const g = gameById.get(s.gameId);
     if (norm(g?.name).includes(needle) || norm(s.note).includes(needle)) return true;
-    return s.results.some((r) => norm(state.players.find((p) => p.id === r.playerId)?.name).includes(needle));
+    return s.results.some((r) => norm(playerById.get(r.playerId)?.name).includes(needle));
   }
 
   function renderList() {
@@ -70,7 +70,7 @@ export function Parties(state, refresh) {
   }
 
   function sessionRow(s) {
-    const g = state.games.find((x) => x.id === s.gameId);
+    const g = gameById.get(s.gameId);
     const ranked = [...s.results].sort((a, b) => a.rank - b.rank);
 
     return h('div', { class: 'list-item' },
@@ -85,7 +85,7 @@ export function Parties(state, refresh) {
         s.note ? h('div', { class: 'sub', style: 'font-style:italic' }, `« ${s.note} »`) : null,
         h('div', { class: 'result-chips' },
           ranked.map((r) => {
-            const p = state.players.find((pl) => pl.id === r.playerId);
+            const p = playerById.get(r.playerId);
             if (!p) return h('span', { class: `rc r${r.rank <= 3 ? r.rank : ''}` }, `${resultIcon(s, r.rank)} ? ${fmtPts(r.points)}`);
             return h('span', {
               class: `rc r${r.rank <= 3 ? r.rank : ''} clickable`,

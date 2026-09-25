@@ -674,3 +674,15 @@ body, header, nav, section, .card, .tile, .chip, input, select, textarea {
   transition: background-color .25s ease, color .25s ease, border-color .25s ease;
 }
 .toggle { transition: transform .08s ease, background-color .25s ease, color .25s ease, border-color .25s ease; }
+
+/* ---------------------------------------------------------------- mini-graphe d'activité */
+
+/* Histogramme « parties des 8 dernières semaines » de l'accueil : quelques
+   barres dorées, zéro canvas, la semaine courante tout à droite. */
+.act-chart { display: flex; align-items: stretch; gap: 6px; margin-top: .5rem; }
+.act-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.act-n { font-size: .72rem; font-weight: 700; color: var(--ink); line-height: 1; min-height: .8em; }
+.act-plot { height: 64px; width: 100%; max-width: 34px; display: flex; align-items: flex-end; }
+.act-bar { width: 100%; border-radius: 6px 6px 2px 2px; background: var(--gold); opacity: .9; }
+.act-bar.empty { opacity: .25; }
+.act-w { font-size: .66rem; color: var(--muted); line-height: 1; }
